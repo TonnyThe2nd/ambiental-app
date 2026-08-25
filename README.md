@@ -4,7 +4,7 @@ Sistema colaborativo de monitoramento ambiental urbano.
 
 ## Visão geral
 
-Aplicativo mobile em Flutter para reportar ocorrências ambientais urbanas com foto, geolocalização e classificação local em TensorFlow Lite. Os dados são sincronizados com Firebase e visualizados em mapa interativo.
+Aplicativo mobile em Flutter para reportar ocorrências ambientais urbanas com foto, geolocalização e classificação manual pelo usuário. Os dados são sincronizados com Firebase e visualizados em mapa interativo.
 
 ## Estrutura do projeto
 
@@ -56,10 +56,10 @@ aps/
 - configuração de dependências
 - autenticação básica e arquitetura inicial
 
-### Fase 2 - Coleta e classificação
+### Fase 2 - Coleta e classificação manual
 - camera service
 - location service
-- integração TensorFlow Lite
+- seleção manual de categoria pela interface
 - persistência local e fila offline
 
 ### Fase 3 - Sincronização e backend
@@ -82,7 +82,6 @@ aps/
 ## Tecnologias principais
 
 - Flutter / Dart
-- TensorFlow Lite
 - Firebase Firestore, Storage, Auth, FCM
 - Cloud Functions
 - Google Maps Platform

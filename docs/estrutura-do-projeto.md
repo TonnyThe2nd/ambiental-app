@@ -10,7 +10,7 @@ A estrutura foi pensada para facilitar:
 - evolução por módulos e features;
 - separação de responsabilidades;
 - desenvolvimento em equipe;
-- integração com Flutter, Firebase, Google Maps e TensorFlow Lite;
+- integração com Flutter, Firebase e Google Maps;
 - versionamento e deploy disciplinado.
 
 ---
@@ -148,9 +148,8 @@ aps/
 │       │   │           └── pages/
 │       │   │               └── settings_page.dart
 │       │   ├── services/
-│       │   │   ├── classifier/
-│       │   │   │   ├── classifier_service.dart
-│       │   │   │   └── tflite_model.dart
+│       │   │   ├── classification/
+│       │   │   │   └── category_service.dart
 │       │   │   ├── camera/
 │       │   │   │   └── camera_service.dart
 │       │   │   ├── location/
@@ -195,8 +194,8 @@ aps/
 │       │   ├── images/
 │       │   │   ├── icons/
 │       │   │   └── splash/
-│       │   ├── models/
-│       │   │   └── mobilenet_labels.txt
+│       │   ├── categories/
+│       │   │   └── incident_categories.json
 │       │   └── fonts/
 │       ├── pubspec.yaml
 │       ├── analysis_options.yaml
@@ -364,7 +363,7 @@ Contém automações e utilitários para facilitar setup e deploy.
 - `setup.sh`: prepara o ambiente local;
 - `deploy.sh`: automatiza deploy e operações de infraestrutura;
 - `bootstrap_firebase.sh`: cria base do Firebase;
-- `generate_model_assets.sh`: prepara artefatos do modelo ML.
+- `generate_categories_assets.sh`: prepara o catálogo de categorias do app.
 
 ---
 
@@ -395,7 +394,7 @@ Para manter o projeto sustentável, a organização segue as seguintes convenç�
 - `main.dart`
 - `app.dart`
 - `firebase_options.dart`
-- `classifier_service.dart`
+- `category_service.dart`
 - `location_service.dart`
 - `sync_service.dart`
 - `incident_model.dart`
@@ -440,7 +439,7 @@ Essa organização permite que o time evolua o projeto em fases sem misturar res
 A estrutura atual já está preparada para receber o desenvolvimento real do projeto. O próximo passo recomendável é:
 
 - criar o app Flutter em `apps/mobile` com `flutter create`;
-- configurar `pubspec.yaml` com dependências do Firebase, Google Maps, geolocator e TFLite;
+- configurar `pubspec.yaml` com dependências do Firebase, Google Maps e geolocator;
 - criar o primeiro conjunto de módulos de domínio e do backend serverless.
 
 Com isso, a organização proposta passa de um esquema documental para uma base operacional de desenvolvimento.

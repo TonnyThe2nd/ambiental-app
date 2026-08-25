@@ -2,9 +2,9 @@
 
 ## Visão Geral
 
-O UrbanEye é um sistema colaborativo de monitoramento ambiental urbano concebido para transformar imagens capturadas por cidadãos em indicadores de risco e ocorrência ambiental. O fluxo principal combina câmera do dispositivo móvel, geolocalização, análise on-device com MobileNetV2 em TensorFlow Lite, persistência local para operação offline e sincronização com Firebase para disseminação em tempo real em um mapa colaborativo.
+O UrbanEye é um sistema colaborativo de monitoramento ambiental urbano concebido para transformar imagens capturadas por cidadãos em indicadores de risco e ocorrência ambiental. O fluxo principal combina câmera do dispositivo móvel, geolocalização, seleção manual de categoria pelo usuário, persistência local para operação offline e sincronização com Firebase para disseminação em tempo real em um mapa colaborativo.
 
-A arquitetura adota um desenho híbrido de cliente-servidor com elementos de edge computing, processamento local e sincronização em nuvem. A inteligência de classificação ocorre no dispositivo para reduzir latência, preservar privacidade e minimizar custo de banda. A nuvem atua como orquestradora de consistência, deduplicação, notificações e visibilidade global das ocorrências.
+A arquitetura adota um desenho híbrido de cliente-servidor com elementos de processamento local, revisão manual e sincronização em nuvem. A classificação da ocorrência é feita pela pessoa que reporta o caso, preservando a autonomia do usuário e a clareza da informação. A nuvem atua como orquestradora de consistência, deduplicação, notificações e visibilidade global das ocorrências.
 
 ### Diagrama de Blocos de Alto Nível
 
@@ -13,13 +13,13 @@ flowchart TD
     U[Usuário / Cidadão] --> A[Flutter App]
     A --> C[Camera Service]
     A --> G[Location Service]
-    A --> M[ML Inference TFLite]
+    A --> M[Classificação Manual]
     A --> P[Local DB SQLite/Hive]
     A --> S[Firebase Sync Service]
 
     C -->|Foto + metadata| M
     G -->|lat/lng/timestamp| S
-    M -->|categoria + score| S
+    M -->|categoria selecionada| S
     S -->|Queue local + upload| F[Firebase]
     F --> FS[Firestore]
     F --> ST[Storage]
@@ -37,7 +37,7 @@ flowchart TD
 O sistema combina os seguintes princípios arquiteturais:
 
 - Cliente-servidor: o app móvel atua como cliente ativo que envia dados para o backend e consome eventos em tempo real.
-- Edge computing: inferência de classificação e validação simples ocorrem no dispositivo.
+- Revisão manual: a categoria da ocorrência é escolhida pela pessoa que reporta, com suporte de catalogo de opções e validações simples.
 - Offline-first: quando há falha ou ausência de conectividade, o app persiste a ocorrência localmente e sincroniza quando a rede retorna.
 - Event-driven / pub-sub: eventos de criação e atualização de ocorrências disparam notificações e sincronização.
 - Eventual consistency: o sistema prioriza disponibilidade e tolerância a partição, especialmente em cenários de rede instável.
@@ -49,14 +49,14 @@ O sistema combina os seguintes princípios arquiteturais:
 | Escalabilidade | Firestore + Cloud Functions serverless + Storage para objetos | Permite crescimento horizontal associativo sem provisionamento manual de infraestrutura |
 | Disponibilidade | Persistência local + retries + replicação do estado em nuvem | O app continua funcional mesmo sem conectividade |
 | Tolerância a falhas | fila local, backoff exponencial, idempotência, LWW | Reduz falhas em escrita e elimina inconsistência por reprocessamento |
-| Latência | inferência local + snapshost listeners + nuvem para sincronização | A classificação fica instantânea e o mapa se atualiza sem esperas de rede |
+| Latência | captura local + snapshots listeners + nuvem para sincronização | A classificação manual fica imediata e o mapa se atualiza sem esperas de rede |
 | Segurança | Firebase Auth, regras de Firestore, token de acesso, API keys em ambiente protegido | Reduz risco de acesso indevido e vazamento de credenciais |
 | Privacidade | processa imagens localmente e exige upload explícito | Garante que o usuário controle saída de mídia sensível |
 
 ### Principais Premissas de Projeto
 
 - As ocorrências podem ser reportadas em regiões com conectividade intermitente.
-- A classificação em contêiner de ML deve ser leve e executável em celulares modestos.
+- A categoria da ocorrência é escolhida manualmente pelo usuário, com validação de opções e consistência do catálogo.
 - A deduplicação e o processamento de urgência devem ocorrer no backend para manter qualidade dos dados.
 - O consumo do mapa deve considerar volume de marcadores e limites de renderização.
 
@@ -148,16 +148,16 @@ graph TD
     end
 
     subgraph Edge[Edge / Client Processing]
-        TFL[TensorFlow Lite\nMobileNetV2]
+        CAT[Classificação Manual\nCategoria do usuário]
         SQL[(SQLite / Hive\nFila local)]
         GPS[Geolocalização]
     end
 
-    M1 --> TFL
+    M1 --> CAT
     M1 --> SQL
     M1 --> GPS
-    M2 --> TFL
-    M3 --> TFL
+    M2 --> CAT
+    M3 --> CAT
 
     subgraph Cloud[Firebase / Cloud]
         AUTH[Firebase Auth]
@@ -185,7 +185,7 @@ graph TD
 ### Distribuição Geográfica e Estratégia de Edge
 
 - Os dispositivos estão espalhados geograficamente e operam com conectividade variável.
-- O processamento de classificação é feito no próprio aparelho, aproximando a computação da fonte.
+- A categoria da ocorrência é escolhida diretamente pelo usuário no app, reduzindo dependência de inferência automática.
 - O Firebase leva o armazenamento e a orquestração centralizada em regiões configuradas.
 - O uso de Storage com CDN ou distribuição de objetos reduz latência para download de imagens dos clientes.
 - Em regiões com baixa conectividade, o app continua funcional através do banco local e sincronização assíncrona.
@@ -201,14 +201,14 @@ graph TD
 
 ## Visão de Processos e Comunicação
 
-### 1) Fluxo Principal: Captura → Classificação → Geolocalização → Upload → Sincronização
+### 1) Fluxo Principal: Captura → Classificação Manual → Geolocalização → Upload → Sincronização
 
 ```mermaid
 sequenceDiagram
     actor User as Usuário
     participant App as Flutter App
     participant Cam as Camera Service
-    participant ML as TFLite Model
+    participant Category as Seleção Manual de Categoria
     participant Loc as Location Service
     participant Local as SQLite/Hive
     participant Sync as Firebase Sync Service
@@ -218,8 +218,8 @@ sequenceDiagram
     User->>App: Abre câmera e registra incidente
     App->>Cam: capturePhoto()
     Cam-->>App: imagem em bytes
-    App->>ML: classifyImage(image)
-    ML-->>App: categoria + score + confiança
+    User->>Category: escolhe categoria da ocorrência
+    Category-->>App: categoria selecionada
     App->>Loc: getCurrentPosition()
     Loc-->>App: lat, lng, timestamp
     App->>Local: savePendingOccurrence()
@@ -314,9 +314,8 @@ A coleção principal contém documentos de ocorrências urbanas. O esquema abai
   "contadorConfirmacoes": 2,
   "status": "pendente_aprovacao",
   "metadata": {
-    "confianca": 0.89,
     "origem": "mobile",
-    "versaoModelo": "mobilenetv2-224-int8"
+    "categoriaConfirmadaPorUsuario": true
   }
 }
 ```
@@ -432,61 +431,47 @@ erDiagram
 
 ### Module 1: Camera Service
 
-Objetivo: capturar, preparar e validar imagens antes da classificação.
+Objetivo: capturar, preparar e validar imagens antes do envio.
 
 Responsabilidades:
 
 - abrir câmera ou selecionar imagem da galeria;
 - aplicar correções de orientação;
-- redimensionar para 224x224 para o modelo MobileNetV2;
-- converter para tensor no formato exigido pelo TFLite;
-- compactar imagens em qualidade razoável para upload.
+- validar tamanho e extensão do arquivo;
+- compactar imagens em qualidade razoável para upload;
+- preparar a imagem para revisão e envio ao backend.
 
 Exemplo de fluxo de preparação:
 
 ```dart
-Future<Uint8List> prepareImageForInference(XFile file) async {
-  final image = await decodeImageFromList(await file.readAsBytes());
-  final resized = await resizeImage(image, width: 224, height: 224);
-  final bytes = await encodePng(resized);
+Future<Uint8List> prepareImageForUpload(XFile file) async {
+  final bytes = await file.readAsBytes();
   return bytes;
 }
 ```
 
 Observações:
 
-- Redimensionar o modelo para 224x224 equivale ao padrão usado por MobileNetV2 em aplicações de classificação genérica.
-- A compactação reduz payload, mas deve preservar análise visual suficiente para o modelo.
+- A imagem deve ser tratada como evidência do incidente e não como entrada de inferência automática.
+- A compactação reduz payload, mas preserva a legibilidade visual do registro.
 
-### Module 2: Classifier Service (TFLite)
+### Module 2: Category Selection Service (manual)
 
-Objetivo: executar a inferência no dispositivo via TensorFlow Lite.
+Objetivo: permitir que o usuário escolha a categoria da ocorrência de forma explícita e consistente.
 
 Fluxo técnico:
 
-1. Carregar modelo `.tflite` em memória.
-2. Pré-processar imagem para tensor normalizado.
-3. Executar inferência.
-4. Aplicar softmax e classificar.
-5. Gerar categoria e score de confiança.
-
-Pseudo-processamento:
-
-```python
-# Exemplo conceitual em Python
-x = input_tensor / 255.0
-x = (x - mean) / std
-logits = interpreter(x)
-probs = softmax(logits)
-label = argmax(probs)
-conf = probs[label]
-```
+1. Exibir catálogo de categorias disponíveis.
+2. Validar a escolha do usuário.
+3. Associar a categoria ao registro da ocorrência.
+4. Salvar a informação localmente e sincronizar com o backend.
+5. Permitir correção posterior em caso de erro humano.
 
 Regra de decisão:
 
-- somente aceita classificação quando `score >= threshold`;
-- caso a confiança seja baixa, a ocorrência pode ser marcada como `manual_review`;
-- em casos de classes ambíguas, pode haver agregação de confirmação por outros usuários.
+- a categoria deve ser preenchida pelo usuário em tela de confirmação;
+- caso a categoria não seja informada, a ocorrência pode ficar em fila de revisão;
+- em casos de ambiguidade, a confirmação por outros usuários pode ser usada como sinal de reforço, mas não como classificação automática.
 
 ### Module 3: Location Service
 
@@ -638,8 +623,8 @@ service cloud.firestore {
 
 ### Privacidade e Sensoriamento
 
-- a classificação da imagem ocorre totalmente no dispositivo;
-- a foto só é enviada para a nuvem quando há consentimento explícito do usuário;
+- a imagem é capturada e enviada com consentimento explícito do usuário;
+- a categoria é definida manualmente pela pessoa reportando o incidente;
 - metadados sensíveis como coordenadas podem ser minimizados quando não forem necessários;
 - a URL da imagem deve ser acessível apenas via Storage e autorização adequada.
 
@@ -713,7 +698,7 @@ Gargalos principais:
 
 - Storage eUpload de imagens podem se tornar gargalo quando há muitos usuários com alta largura de banda;
 - renderização de marcadores em mapa pode degradar com milhares de pontos visíveis em uma única viewport;
-- inferência on-device pode consumir bateria e CPU em dispositivos de baixo desempenho.
+- uso intenso de imagens e sincronização em múltiplas telas pode consumir bateria e rede em dispositivos de baixo desempenho.
 
 ---
 
@@ -723,7 +708,7 @@ Gargalos principais:
 sequenceDiagram
     actor Cidadao as Cidadão
     participant App as Flutter App
-    participant TFL as TFLite / MobileNetV2
+    participant Cat as Seleção Manual
     participant Local as SQLite/Hive
     participant Cloud as Firebase
     participant CF as Cloud Function
@@ -731,8 +716,9 @@ sequenceDiagram
     participant Outro as Outros Usuários
 
     Cidadao->>App: Tira foto de alagamento
-    App->>TFL: classificar imagem
-    TFL-->>App: categoria = alagamento, score = 0.91
+    App-->>Cidadao: apresenta opções de categoria
+    Cidadao->>Cat: seleciona "alagamento"
+    Cat-->>App: categoria validada
     App->>App: coleta GPS + timestamp
     App->>Local: salva ocorrência pendente
     App->>Cloud: upload de imagem + documento
@@ -749,14 +735,14 @@ sequenceDiagram
 
 ## Considerações de Performance e Otimização
 
-### Modelo TFLite e Quantização
+### Catálogo de Categorias e Validação
 
-Para reduzir tamanho e consumo, recomenda-se:
+Para reduzir ruído e manter consistência, recomenda-se:
 
-- quantização `int8` ou `uint8` do modelo;
-- exportação para TensorFlow Lite com menor largura de banda e uso de memória;
-- uso de `InterpreterOptions` para reduzir carga e tempo de inferência;
-- benchmark em dispositivos alvo para garantir tempo aceitável de resposta.
+- manter um catálogo central de categorias válidas;
+- padronizar nomes e descrições para evitar duplicidade semântica;
+- validar a categoria antes de salvar a ocorrência localmente;
+- permitir revisão humana em casos raros ou ambiguos.
 
 ### Cache de Imagens
 
@@ -780,7 +766,7 @@ Para reduzir tamanho e consumo, recomenda-se:
 
 | Indicador | Meta |
 |---|---|
-| Tempo de inferência do modelo | < 300 ms em dispositivos medianos |
+| Tempo entre captura e seleção de categoria | < 1 s |
 | Tempo entre captura e persistência local | < 1 s |
 | Tempo de upload de imagem em rede 4G | < 10 s para imagens médias |
 | Tempo de atualização do mapa após snapshot | < 2 s |
