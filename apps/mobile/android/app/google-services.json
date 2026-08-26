@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "959145802508",
+    "project_id": "aps-ambiental",
+    "storage_bucket": "aps-ambiental.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959145802508:android:7a0f1af0169c833d6e2729",
+        "android_client_info": {
+          "package_name": "com.urbaneye.urbaneye_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCztASiE4EP9_btQz9IXp37UZIkTfPUm70"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

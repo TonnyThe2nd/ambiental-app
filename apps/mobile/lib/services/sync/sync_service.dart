@@ -15,7 +15,7 @@ class SyncService {
     for (final incident in await _repository.pending()) {
       try {
         final uploaded = await _repository.upload(incident);
-        await _repository.markSynced(incident, uploaded.imageUrl!);
+        await _repository.markSynced(incident, uploaded.imageUrl ?? '');
         synced++;
       } catch (error) {
         await _repository.markFailed(incident, error);

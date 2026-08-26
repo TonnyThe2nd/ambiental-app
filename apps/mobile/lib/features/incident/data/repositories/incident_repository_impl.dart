@@ -15,8 +15,12 @@ class IncidentRepositoryImpl implements IncidentRepository {
   Future<List<Incident>> pending() async =>
       local.all().where((i) => i.status != IncidentStatus.synced).toList();
   @override
-  Future<void> markSynced(Incident i, String url) => local.put(
-    i.copyWith(status: IncidentStatus.synced, imageUrl: url, lastError: ''),
+  Future<void> markSynced(Incident i, String imageUrl) => local.put(
+    i.copyWith(
+      status: IncidentStatus.synced,
+      imageUrl: imageUrl,
+      lastError: '',
+    ),
   );
   @override
   Future<void> markFailed(Incident i, Object error) => local.put(

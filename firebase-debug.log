@@ -1,0 +1,784 @@
+[debug] [2026-08-25T20:42:27.385Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:42:27.388Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:list
+[debug] [2026-08-25T20:42:27.389Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:42:27.389Z] Platform:      win32
+[debug] [2026-08-25T20:42:27.389Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:42:27.390Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:42:27.390Z] Time:          Tue Aug 25 2026 17:42:27 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:42:27.390Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:42:27.398Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:42:27.398Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:42:27.417Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:42:27.417Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:42:27.420Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-08-25T20:42:28.267Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-08-25T20:42:28.268Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] No projects found.
+[debug] [2026-08-25T20:44:39.391Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:44:39.409Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:create aps-ambiental --display-name APS Ambiental
+[debug] [2026-08-25T20:44:39.409Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:44:39.409Z] Platform:      win32
+[debug] [2026-08-25T20:44:39.409Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:44:39.410Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:44:39.410Z] Time:          Tue Aug 25 2026 17:44:39 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:44:39.410Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:44:39.457Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:44:39.457Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:44:39.476Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:44:39.477Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:44:39.479Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects [none]
+[debug] [2026-08-25T20:44:39.479Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects {"projectId":"aps-ambiental","name":"APS Ambiental"}
+[debug] [2026-08-25T20:44:40.613Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects 409
+[debug] [2026-08-25T20:44:40.613Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects {"error":{"code":409,"message":"Requested entity already exists","status":"ALREADY_EXISTS"}}
+[debug] [2026-08-25T20:44:40.848Z] FirebaseError: Request to https://cloudresourcemanager.googleapis.com/v1/projects had HTTP Error: 409, Requested entity already exists
+    at responseToError (C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:415:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to create project because there is already a project with ID aps-ambiental. Please try again with a unique project ID.
+[debug] [2026-08-25T20:44:50.157Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:44:50.160Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:addfirebase aps-ambiental
+[debug] [2026-08-25T20:44:50.161Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:44:50.161Z] Platform:      win32
+[debug] [2026-08-25T20:44:50.161Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:44:50.161Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:44:50.161Z] Time:          Tue Aug 25 2026 17:44:50 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:44:50.162Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:44:50.188Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:44:50.188Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:44:50.199Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:44:50.199Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:44:50.200Z] >>> [apiv2][query] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase [none]
+[debug] [2026-08-25T20:44:50.900Z] <<< [apiv2][status] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase 403
+[debug] [2026-08-25T20:44:50.901Z] <<< [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2026-08-25T20:44:50.902Z] Request to https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase had HTTP Error: 403, The caller does not have permission
+[debug] [2026-08-25T20:44:51.090Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase had HTTP Error: 403, The caller does not have permission
+    at responseToError (C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:415:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to add Firebase to Google Cloud Platform project. See firebase-debug.log for more info.
+[debug] [2026-08-25T20:46:37.031Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:46:37.050Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js projects:addfirebase aps-ambiental
+[debug] [2026-08-25T20:46:37.051Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:46:37.051Z] Platform:      win32
+[debug] [2026-08-25T20:46:37.051Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:46:37.052Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:46:37.052Z] Time:          Tue Aug 25 2026 17:46:37 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:46:37.052Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:46:37.063Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:46:37.064Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:46:37.124Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:37.124Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:37.126Z] >>> [apiv2][query] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase [none]
+[debug] [2026-08-25T20:46:38.963Z] <<< [apiv2][status] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase 409
+[debug] [2026-08-25T20:46:38.963Z] <<< [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase {"error":{"code":409,"message":"Requested entity already exists","status":"ALREADY_EXISTS"}}
+[debug] [2026-08-25T20:46:38.964Z] Request to https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase had HTTP Error: 409, Requested entity already exists
+[debug] [2026-08-25T20:46:39.138Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/aps-ambiental:addFirebase had HTTP Error: 409, Requested entity already exists
+    at responseToError (C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:415:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to add Firebase to Google Cloud Platform project. See firebase-debug.log for more info.
+[debug] [2026-08-25T20:46:40.498Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:46:40.500Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js apps:create ANDROID UrbanEye Android --package-name com.urbaneye.urbaneye_mobile --project aps-ambiental
+[debug] [2026-08-25T20:46:40.501Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:46:40.501Z] Platform:      win32
+[debug] [2026-08-25T20:46:40.501Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:46:40.501Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:46:40.502Z] Time:          Tue Aug 25 2026 17:46:40 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:46:40.502Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:46:40.592Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:46:40.594Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[info] Create your ANDROID app in project aps-ambiental:
+[debug] [2026-08-25T20:46:40.616Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:40.616Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:40.621Z] >>> [apiv2][query] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental/androidApps [none]
+[debug] [2026-08-25T20:46:40.621Z] >>> [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental/androidApps {"displayName":"UrbanEye Android","packageName":"com.urbaneye.urbaneye_mobile"}
+[debug] [2026-08-25T20:46:42.821Z] <<< [apiv2][status] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental/androidApps 200
+[debug] [2026-08-25T20:46:42.821Z] <<< [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/aps-ambiental/androidApps {"name":"operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh"}
+[debug] [2026-08-25T20:46:42.823Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:42.823Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:42.823Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh [none]
+[debug] [2026-08-25T20:46:43.735Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh 200
+[debug] [2026-08-25T20:46:43.735Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh {"name":"operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh"}
+[debug] [2026-08-25T20:46:44.239Z] [Create Android app Poller] Retrying task index 0
+[debug] [2026-08-25T20:46:44.240Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:44.240Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:44.242Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh [none]
+[debug] [2026-08-25T20:46:45.088Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh 200
+[debug] [2026-08-25T20:46:45.088Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh {"name":"operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh"}
+[debug] [2026-08-25T20:46:46.100Z] [Create Android app Poller] Retrying task index 0
+[debug] [2026-08-25T20:46:46.101Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:46.102Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:46.102Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh [none]
+[debug] [2026-08-25T20:46:46.702Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh 200
+[debug] [2026-08-25T20:46:46.703Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh {"name":"operations/workflows/ZmMzZDVkOWQtZGI5MS00YTk4LTk2Y2MtNjMwZjA5NTBkM2Zh","done":true,"response":{"@type":"type.googleapis.com/google.firebase.service.v1beta1.AndroidApp","name":"projects/aps-ambiental/androidApps/1:959145802508:android:7a0f1af0169c833d6e2729","appId":"1:959145802508:android:7a0f1af0169c833d6e2729","displayName":"UrbanEye Android","projectId":"aps-ambiental","packageName":"com.urbaneye.urbaneye_mobile","apiKeyId":"28ac83b8-5e4d-4538-a5d1-c478165de9c3","state":"ACTIVE","expireTime":"1970-01-01T00:00:00Z","framework":{},"etag":"1_9dbb566d-383d-4003-85b6-17e1f5d7a9f5"}}
+[info] 
+[info] 🎉🎉🎉 Your Firebase ANDROID App is ready! 🎉🎉🎉
+[info] 
+[info] App information:
+[info]   - App ID: 1:959145802508:android:7a0f1af0169c833d6e2729
+[info]   - Display name: UrbanEye Android
+[info]   - Package name: com.urbaneye.urbaneye_mobile
+[info] 
+[info] You can run this command to print out your new app's Google Services config:
+[info]   firebase apps:sdkconfig ANDROID 1:959145802508:android:7a0f1af0169c833d6e2729
+[debug] [2026-08-25T20:46:56.064Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:46:56.067Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js apps:sdkconfig ANDROID 1:959145802508:android:7a0f1af0169c833d6e2729 --project aps-ambiental
+[debug] [2026-08-25T20:46:56.067Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:46:56.068Z] Platform:      win32
+[debug] [2026-08-25T20:46:56.068Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:46:56.069Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:46:56.069Z] Time:          Tue Aug 25 2026 17:46:56 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:46:56.070Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:46:56.124Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:46:56.125Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:46:56.140Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:56.140Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:46:56.141Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/-/androidApps/1:959145802508:android:7a0f1af0169c833d6e2729/config [none]
+[debug] [2026-08-25T20:46:57.795Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/-/androidApps/1:959145802508:android:7a0f1af0169c833d6e2729/config 200
+[debug] [2026-08-25T20:46:57.795Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/-/androidApps/1:959145802508:android:7a0f1af0169c833d6e2729/config {"configFilename":"google-services.json","configFileContents":"ewogICJwcm9qZWN0X2luZm8iOiB7CiAgICAicHJvamVjdF9udW1iZXIiOiAiOTU5MTQ1ODAyNTA4IiwKICAgICJwcm9qZWN0X2lkIjogImFwcy1hbWJpZW50YWwiLAogICAgInN0b3JhZ2VfYnVja2V0IjogImFwcy1hbWJpZW50YWwuZmlyZWJhc2VzdG9yYWdlLmFwcCIKICB9LAogICJjbGllbnQiOiBbCiAgICB7CiAgICAgICJjbGllbnRfaW5mbyI6IHsKICAgICAgICAibW9iaWxlc2RrX2FwcF9pZCI6ICIxOjk1OTE0NTgwMjUwODphbmRyb2lkOjdhMGYxYWYwMTY5YzgzM2Q2ZTI3MjkiLAogICAgICAgICJhbmRyb2lkX2NsaWVudF9pbmZvIjogewogICAgICAgICAgInBhY2thZ2VfbmFtZSI6ICJjb20udXJiYW5leWUudXJiYW5leWVfbW9iaWxlIgogICAgICAgIH0KICAgICAgfSwKICAgICAgIm9hdXRoX2NsaWVudCI6IFtdLAogICAgICAiYXBpX2tleSI6IFsKICAgICAgICB7CiAgICAgICAgICAiY3VycmVudF9rZXkiOiAiQUl6YVN5Q3p0QVNpRTRFUDlfYnRRejlJWHAzN1VaSWtUZlBVbTcwIgogICAgICAgIH0KICAgICAgXSwKICAgICAgInNlcnZpY2VzIjogewogICAgICAgICJhcHBpbnZpdGVfc2VydmljZSI6IHsKICAgICAgICAgICJvdGhlcl9wbGF0Zm9ybV9vYXV0aF9jbGllbnQiOiBbXQogICAgICAgIH0KICAgICAgfQogICAgfQogIF0sCiAgImNvbmZpZ3VyYXRpb25fdmVyc2lvbiI6ICIxIgp9"}
+[info] {
+  "project_info": {
+    "project_number": "959145802508",
+    "project_id": "aps-ambiental",
+    "storage_bucket": "aps-ambiental.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959145802508:android:7a0f1af0169c833d6e2729",
+        "android_client_info": {
+          "package_name": "com.urbaneye.urbaneye_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCztASiE4EP9_btQz9IXp37UZIkTfPUm70"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+[debug] [2026-08-25T20:47:46.529Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:47:46.532Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:list --project aps-ambiental
+[debug] [2026-08-25T20:47:46.533Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:47:46.533Z] Platform:      win32
+[debug] [2026-08-25T20:47:46.533Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:47:46.534Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:47:46.534Z] Time:          Tue Aug 25 2026 17:47:46 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:47:46.534Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:48:06.136Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:48:06.137Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:48:06.137Z] [iam] checking project aps-ambiental for permissions ["datastore.databases.list","firebase.projects.get"]
+[debug] [2026-08-25T20:48:06.174Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:48:06.174Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:48:06.175Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T20:48:06.175Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T20:48:06.175Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.list","firebase.projects.get"]}
+[debug] [2026-08-25T20:48:07.173Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T20:48:07.173Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.list","firebase.projects.get"]}
+[debug] [2026-08-25T20:48:07.174Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:48:07.174Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:48:07.174Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases [none]
+[debug] [2026-08-25T20:48:07.399Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases 403
+[debug] [2026-08-25T20:48:07.400Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"error":{"code":403,"message":"Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"SERVICE_DISABLED","domain":"googleapis.com","metadata":{"service":"firestore.googleapis.com","containerInfo":"aps-ambiental","activationUrl":"https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental","consumer":"projects/aps-ambiental","serviceTitle":"Cloud Firestore API"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developers console API activation","url":"https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental"}]}]}}
+[error] 
+[error] Error: Request to https://firestore.googleapis.com/v1/projects/aps-ambiental/databases had HTTP Error: 403, Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
+[debug] [2026-08-25T20:48:07.608Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+      "status": "PERMISSION_DENIED",
+      "details": [
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          "reason": "SERVICE_DISABLED",
+          "domain": "googleapis.com",
+          "metadata": {
+            "service": "firestore.googleapis.com",
+            "containerInfo": "aps-ambiental",
+            "activationUrl": "https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental",
+            "consumer": "projects/aps-ambiental",
+            "serviceTitle": "Cloud Firestore API"
+          }
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+          "locale": "en-US",
+          "message": "Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.Help",
+          "links": [
+            {
+              "description": "Google developers console API activation",
+              "url": "https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "response": {
+    "statusCode": 403
+  }
+}
+[debug] [2026-08-25T20:49:38.517Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:49:38.520Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:create (default) --location southamerica-east1 --edition standard --delete-protection ENABLED --project aps-ambiental
+[debug] [2026-08-25T20:49:38.521Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:49:38.521Z] Platform:      win32
+[debug] [2026-08-25T20:49:38.521Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:49:38.521Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:49:38.522Z] Time:          Tue Aug 25 2026 17:49:38 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:49:38.522Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:49:39.405Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:49:39.406Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:49:39.406Z] [iam] checking project aps-ambiental for permissions ["datastore.databases.create","firebase.projects.get"]
+[debug] [2026-08-25T20:49:39.452Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:49:39.452Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:49:39.454Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T20:49:39.454Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T20:49:39.454Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.create","firebase.projects.get"]}
+[debug] [2026-08-25T20:49:40.531Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T20:49:40.531Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.create","firebase.projects.get"]}
+[debug] [2026-08-25T20:49:40.532Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:49:40.532Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:49:40.533Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases databaseId=%28default%29
+[debug] [2026-08-25T20:49:40.533Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","databaseEdition":"STANDARD","deleteProtectionState":"DELETE_PROTECTION_ENABLED","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","firestoreDataAccessMode":"DATA_ACCESS_MODE_UNSPECIFIED","mongodbCompatibleDataAccessMode":"DATA_ACCESS_MODE_UNSPECIFIED"}
+[debug] [2026-08-25T20:49:40.779Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases 403
+[debug] [2026-08-25T20:49:40.779Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"error":{"code":403,"message":"Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"SERVICE_DISABLED","domain":"googleapis.com","metadata":{"serviceTitle":"Cloud Firestore API","activationUrl":"https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental","service":"firestore.googleapis.com","consumer":"projects/aps-ambiental","containerInfo":"aps-ambiental"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developers console API activation","url":"https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental"}]}]}}
+[error] 
+[error] Error: Request to https://firestore.googleapis.com/v1/projects/aps-ambiental/databases?databaseId=%28default%29 had HTTP Error: 403, Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
+[debug] [2026-08-25T20:49:40.967Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+      "status": "PERMISSION_DENIED",
+      "details": [
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          "reason": "SERVICE_DISABLED",
+          "domain": "googleapis.com",
+          "metadata": {
+            "serviceTitle": "Cloud Firestore API",
+            "activationUrl": "https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental",
+            "service": "firestore.googleapis.com",
+            "consumer": "projects/aps-ambiental",
+            "containerInfo": "aps-ambiental"
+          }
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+          "locale": "en-US",
+          "message": "Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.Help",
+          "links": [
+            {
+              "description": "Google developers console API activation",
+              "url": "https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "response": {
+    "statusCode": 403
+  }
+}
+[debug] [2026-08-25T20:50:50.483Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:50:50.504Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:create (default) --location southamerica-east1 --edition standard --delete-protection ENABLED --project aps-ambiental
+[debug] [2026-08-25T20:50:50.505Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:50:50.505Z] Platform:      win32
+[debug] [2026-08-25T20:50:50.505Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:50:50.506Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:50:50.507Z] Time:          Tue Aug 25 2026 17:50:50 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:50:50.507Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:50:52.458Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:50:52.459Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:50:52.459Z] [iam] checking project aps-ambiental for permissions ["datastore.databases.create","firebase.projects.get"]
+[debug] [2026-08-25T20:50:52.480Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:52.480Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:52.482Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T20:50:52.483Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T20:50:52.483Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.create","firebase.projects.get"]}
+[debug] [2026-08-25T20:50:53.479Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T20:50:53.479Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.create","firebase.projects.get"]}
+[debug] [2026-08-25T20:50:53.481Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:53.482Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:53.482Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases databaseId=%28default%29
+[debug] [2026-08-25T20:50:53.483Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","databaseEdition":"STANDARD","deleteProtectionState":"DELETE_PROTECTION_ENABLED","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","firestoreDataAccessMode":"DATA_ACCESS_MODE_UNSPECIFIED","mongodbCompatibleDataAccessMode":"DATA_ACCESS_MODE_UNSPECIFIED"}
+[debug] [2026-08-25T20:50:53.671Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases 403
+[debug] [2026-08-25T20:50:53.672Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"error":{"code":403,"message":"Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"SERVICE_DISABLED","domain":"googleapis.com","metadata":{"serviceTitle":"Cloud Firestore API","activationUrl":"https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental","service":"firestore.googleapis.com","consumer":"projects/aps-ambiental","containerInfo":"aps-ambiental"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developers console API activation","url":"https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental"}]}]}}
+[error] 
+[error] Error: Request to https://firestore.googleapis.com/v1/projects/aps-ambiental/databases?databaseId=%28default%29 had HTTP Error: 403, Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
+[debug] [2026-08-25T20:50:53.868Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+      "status": "PERMISSION_DENIED",
+      "details": [
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          "reason": "SERVICE_DISABLED",
+          "domain": "googleapis.com",
+          "metadata": {
+            "serviceTitle": "Cloud Firestore API",
+            "activationUrl": "https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental",
+            "service": "firestore.googleapis.com",
+            "consumer": "projects/aps-ambiental",
+            "containerInfo": "aps-ambiental"
+          }
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+          "locale": "en-US",
+          "message": "Cloud Firestore API has not been used in project aps-ambiental before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry."
+        },
+        {
+          "@type": "type.googleapis.com/google.rpc.Help",
+          "links": [
+            {
+              "description": "Google developers console API activation",
+              "url": "https://console.developers.google.com/apis/api/firestore.googleapis.com/overview?project=aps-ambiental"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "response": {
+    "statusCode": 403
+  }
+}
+[debug] [2026-08-25T20:50:55.693Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:50:55.698Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:get (default) --project aps-ambiental
+[debug] [2026-08-25T20:50:55.699Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:50:55.699Z] Platform:      win32
+[debug] [2026-08-25T20:50:55.700Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:50:55.700Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:50:55.701Z] Time:          Tue Aug 25 2026 17:50:55 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:50:55.701Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:50:56.753Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:50:56.754Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:50:56.754Z] [iam] checking project aps-ambiental for permissions ["datastore.databases.get","firebase.projects.get"]
+[debug] [2026-08-25T20:50:56.762Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:56.763Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:56.764Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T20:50:56.764Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T20:50:56.764Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.get","firebase.projects.get"]}
+[debug] [2026-08-25T20:50:57.678Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T20:50:57.678Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.get","firebase.projects.get"]}
+[debug] [2026-08-25T20:50:57.679Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:57.679Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:50:57.679Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) [none]
+[debug] [2026-08-25T20:50:58.508Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) 404
+[debug] [2026-08-25T20:50:58.508Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) {"error":{"code":404,"message":"Project 'aps-ambiental' or database '(default)' does not exist.","status":"NOT_FOUND"}}
+[error] 
+[error] Error: Request to https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) had HTTP Error: 404, Project 'aps-ambiental' or database '(default)' does not exist.
+[debug] [2026-08-25T20:50:58.697Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 404,
+      "message": "Project 'aps-ambiental' or database '(default)' does not exist.",
+      "status": "NOT_FOUND"
+    }
+  },
+  "response": {
+    "statusCode": 404
+  }
+}
+[debug] [2026-08-25T20:53:52.621Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:53:52.640Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:create (default) --location southamerica-east1 --edition standard --delete-protection ENABLED --project aps-ambiental
+[debug] [2026-08-25T20:53:52.641Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:53:52.641Z] Platform:      win32
+[debug] [2026-08-25T20:53:52.641Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:53:52.641Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:53:52.642Z] Time:          Tue Aug 25 2026 17:53:52 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:53:52.642Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:53:55.664Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:53:55.666Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:53:55.666Z] [iam] checking project aps-ambiental for permissions ["datastore.databases.create","firebase.projects.get"]
+[debug] [2026-08-25T20:53:55.715Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:53:55.715Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:53:55.718Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T20:53:55.718Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T20:53:55.718Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.create","firebase.projects.get"]}
+[debug] [2026-08-25T20:53:56.756Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T20:53:56.756Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.create","firebase.projects.get"]}
+[debug] [2026-08-25T20:53:56.758Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:53:56.758Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:53:56.759Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases databaseId=%28default%29
+[debug] [2026-08-25T20:53:56.760Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","databaseEdition":"STANDARD","deleteProtectionState":"DELETE_PROTECTION_ENABLED","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","firestoreDataAccessMode":"DATA_ACCESS_MODE_UNSPECIFIED","mongodbCompatibleDataAccessMode":"DATA_ACCESS_MODE_UNSPECIFIED"}
+[debug] [2026-08-25T20:53:59.768Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases 200
+[debug] [2026-08-25T20:53:59.769Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/aps-ambiental/databases {"name":"projects/aps-ambiental/databases/(default)/operations/boUgRGI-kZqmTfiQXTvb4BAqMXRzYWUtYWNpcmVtYWh0dW9zEiIFEC_43IAQBtS4geoICwo1Gg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.CreateDatabaseMetadata"},"done":true,"response":{"@type":"type.googleapis.com/google.firestore.admin.v1.Database","name":"projects/aps-ambiental/databases/(default)","uid":"e0db3b5d-90f8-4da6-9a91-3e624420856e","createTime":"2026-08-25T20:54:02.100544Z","updateTime":"2026-08-25T20:54:02.100544Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-08-25T20:54:02.100544Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_ENABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"IITr0OvUvJYDMMCu0OvUvJYD"}}
+[debug] [2026-08-25T20:53:59.770Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:53:59.770Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:53:59.770Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default)/operations/boUgRGI-kZqmTfiQXTvb4BAqMXRzYWUtYWNpcmVtYWh0dW9zEiIFEC_43IAQBtS4geoICwo1Gg [none]
+[debug] [2026-08-25T20:53:59.978Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default)/operations/boUgRGI-kZqmTfiQXTvb4BAqMXRzYWUtYWNpcmVtYWh0dW9zEiIFEC_43IAQBtS4geoICwo1Gg 200
+[debug] [2026-08-25T20:53:59.979Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default)/operations/boUgRGI-kZqmTfiQXTvb4BAqMXRzYWUtYWNpcmVtYWh0dW9zEiIFEC_43IAQBtS4geoICwo1Gg {"name":"projects/aps-ambiental/databases/(default)/operations/boUgRGI-kZqmTfiQXTvb4BAqMXRzYWUtYWNpcmVtYWh0dW9zEiIFEC_43IAQBtS4geoICwo1Gg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.CreateDatabaseMetadata"},"done":true,"response":{"@type":"type.googleapis.com/google.firestore.admin.v1.Database","name":"projects/aps-ambiental/databases/(default)","uid":"e0db3b5d-90f8-4da6-9a91-3e624420856e","createTime":"2026-08-25T20:54:02.100544Z","updateTime":"2026-08-25T20:54:02.100544Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-08-25T20:54:02.100544Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_ENABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"IODJ3evUvJYDMMCu0OvUvJYD"}}
+[info] Successfully created projects/aps-ambiental/databases/(default)
+[info] Please be sure to configure Firebase rules in your Firebase config file for
+the new database. By default, created databases will have closed rules that
+block any incoming third-party traffic.
+[info] Your database may be viewed at https://console.firebase.google.com/project/aps-ambiental/firestore/databases/-default-/data
+[debug] [2026-08-25T20:54:01.836Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T20:54:01.839Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:databases:get (default) --project aps-ambiental
+[debug] [2026-08-25T20:54:01.839Z] CLI Version:   15.28.1
+[debug] [2026-08-25T20:54:01.840Z] Platform:      win32
+[debug] [2026-08-25T20:54:01.840Z] Node Version:  v22.20.0
+[debug] [2026-08-25T20:54:01.840Z] Detected Agent: codex_cli
+[debug] [2026-08-25T20:54:01.841Z] Time:          Tue Aug 25 2026 17:54:01 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T20:54:01.841Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T20:54:03.185Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T20:54:03.185Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T20:54:03.186Z] [iam] checking project aps-ambiental for permissions ["datastore.databases.get","firebase.projects.get"]
+[debug] [2026-08-25T20:54:03.196Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:54:03.196Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:54:03.199Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T20:54:03.200Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T20:54:03.200Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.get","firebase.projects.get"]}
+[debug] [2026-08-25T20:54:03.551Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T20:54:03.552Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.databases.get","firebase.projects.get"]}
+[debug] [2026-08-25T20:54:03.552Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:54:03.553Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T20:54:03.554Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) [none]
+[debug] [2026-08-25T20:54:03.754Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) 200
+[debug] [2026-08-25T20:54:03.754Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) {"name":"projects/aps-ambiental/databases/(default)","uid":"e0db3b5d-90f8-4da6-9a91-3e624420856e","createTime":"2026-08-25T20:54:02.100544Z","updateTime":"2026-08-25T20:54:02.100544Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-08-25T20:54:02.100544Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_ENABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"IOT4w+3UvJYDMO2+wO3UvJYD"}
+[info] ┌──────────────────────────────┬──────────────────────────────────────────────────┐
+│ Field                        │ Value                                            │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Name                         │ projects/aps-ambiental/databases/(default)       │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Create Time                  │ 2026-08-25T20:54:02.100544Z                      │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Last Update Time             │ 2026-08-25T20:54:02.100544Z                      │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Type                         │ FIRESTORE_NATIVE                                 │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Edition                      │ STANDARD                                         │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Location                     │ southamerica-east1                               │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Delete Protection State      │ DELETE_PROTECTION_ENABLED                        │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Point In Time Recovery       │ POINT_IN_TIME_RECOVERY_DISABLED                  │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Earliest Version Time        │ 2026-08-25T20:54:02.100544Z                      │
+├──────────────────────────────┼──────────────────────────────────────────────────┤
+│ Version Retention Period     │ 3600s                                            │
+└──────────────────────────────┴──────────────────────────────────────────────────┘
+[debug] [2026-08-25T21:16:47.634Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T21:16:47.704Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules storage --project aps-ambiental
+[debug] [2026-08-25T21:16:47.704Z] CLI Version:   15.28.1
+[debug] [2026-08-25T21:16:47.704Z] Platform:      win32
+[debug] [2026-08-25T21:16:47.704Z] Node Version:  v22.20.0
+[debug] [2026-08-25T21:16:47.705Z] Detected Agent: codex_cli
+[debug] [2026-08-25T21:16:47.705Z] Time:          Tue Aug 25 2026 18:16:47 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T21:16:47.705Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T21:16:56.212Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T21:16:56.269Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T21:16:56.270Z] [iam] checking project aps-ambiental for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-08-25T21:16:56.459Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:16:56.460Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:16:56.461Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T21:16:56.462Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T21:16:56.462Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-08-25T21:16:57.700Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T21:16:57.701Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[info] 
+[info] === Deploying to 'aps-ambiental'...
+[info] 
+[info] i  deploying storage, firestore 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-08-25T21:16:57.705Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:16:57.705Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:16:57.706Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com [none]
+[debug] [2026-08-25T21:16:57.706Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T21:16:58.839Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com 200
+[debug] [2026-08-25T21:16:58.839Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com [omitted]
+[warn] !  storage: missing required API firebasestorage.googleapis.com. Enabling now... 
+[debug] [2026-08-25T21:16:58.840Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:16:58.840Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:16:58.840Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com:enable [none]
+[debug] [2026-08-25T21:16:58.840Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com:enable  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T21:17:00.448Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com:enable 200
+[debug] [2026-08-25T21:17:00.448Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/aps-ambiental/services/firebasestorage.googleapis.com:enable [omitted]
+[debug] [2026-08-25T21:17:10.668Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:17:10.672Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:17:10.672Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/aps-ambiental/defaultBucket [none]
+[debug] [2026-08-25T21:17:11.318Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/aps-ambiental/defaultBucket 404
+[debug] [2026-08-25T21:17:11.318Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/aps-ambiental/defaultBucket {"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}
+[error] 
+[error] Error: Firebase Storage has not been set up on project 'aps-ambiental'. Go to https://console.firebase.google.com/project/aps-ambiental/storage and click 'Get Started' to set up Firebase Storage.
+[debug] [2026-08-25T21:18:09.069Z] ----------------------------------------------------------------------
+[debug] [2026-08-25T21:18:09.300Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules storage --project aps-ambiental
+[debug] [2026-08-25T21:18:09.301Z] CLI Version:   15.28.1
+[debug] [2026-08-25T21:18:09.301Z] Platform:      win32
+[debug] [2026-08-25T21:18:09.302Z] Node Version:  v22.20.0
+[debug] [2026-08-25T21:18:09.303Z] Detected Agent: codex_cli
+[debug] [2026-08-25T21:18:09.303Z] Time:          Tue Aug 25 2026 18:18:09 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-25T21:18:09.305Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-25T21:18:30.424Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-25T21:18:30.511Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-25T21:18:30.511Z] [iam] checking project aps-ambiental for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-08-25T21:18:30.658Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:18:30.659Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:18:30.662Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-25T21:18:30.662Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-25T21:18:30.662Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-08-25T21:18:31.853Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-25T21:18:31.854Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[info] 
+[info] === Deploying to 'aps-ambiental'...
+[info] 
+[info] i  deploying storage, firestore 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-08-25T21:18:31.859Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:18:31.859Z] Checked if tokens are valid: true, expires at: 1787693887896
+[debug] [2026-08-25T21:18:31.859Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/aps-ambiental/defaultBucket [none]
+[debug] [2026-08-25T21:18:33.034Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/aps-ambiental/defaultBucket 404
+[debug] [2026-08-25T21:18:33.035Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/aps-ambiental/defaultBucket {"error":{"code":404,"message":"Requested entity was not found.","status":"NOT_FOUND"}}
+[error] 
+[error] Error: Firebase Storage has not been set up on project 'aps-ambiental'. Go to https://console.firebase.google.com/project/aps-ambiental/storage and click 'Get Started' to set up Firebase Storage.
+[debug] [2026-08-26T01:23:00.038Z] ----------------------------------------------------------------------
+[debug] [2026-08-26T01:23:06.955Z] ----------------------------------------------------------------------
+[debug] [2026-08-26T01:23:00.072Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project aps-ambiental
+[debug] [2026-08-26T01:23:00.072Z] CLI Version:   15.28.1
+[debug] [2026-08-26T01:23:00.072Z] Platform:      win32
+[debug] [2026-08-26T01:23:00.073Z] Node Version:  v22.20.0
+[debug] [2026-08-26T01:23:00.073Z] Detected Agent: codex_cli
+[debug] [2026-08-26T01:23:00.073Z] Time:          Tue Aug 25 2026 22:23:00 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-26T01:23:00.073Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-26T01:23:06.958Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project aps-ambiental
+[debug] [2026-08-26T01:23:48.042Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-26T01:23:06.958Z] CLI Version:   15.28.1
+[debug] [2026-08-26T01:23:48.042Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-26T01:23:06.959Z] Platform:      win32
+[debug] [2026-08-26T01:23:48.043Z] [iam] checking project aps-ambiental for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-08-26T01:23:06.959Z] Node Version:  v22.20.0
+[debug] [2026-08-26T01:23:48.074Z] Checked if tokens are valid: false, expires at: 1787693887896
+[debug] [2026-08-26T01:23:06.959Z] Detected Agent: codex_cli
+[debug] [2026-08-26T01:23:48.075Z] Checked if tokens are valid: false, expires at: 1787693887896
+[debug] [2026-08-26T01:23:06.959Z] Time:          Tue Aug 25 2026 22:23:06 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-26T01:23:48.075Z] > refreshing access token with scopes: []
+[debug] [2026-08-26T01:23:06.960Z] ----------------------------------------------------------------------
+[debug] [2026-08-26T01:23:48.081Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] 
+[debug] [2026-08-26T01:23:48.081Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-26T01:23:48.042Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-26T01:23:48.043Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-26T01:23:48.043Z] [iam] checking project aps-ambiental for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-08-26T01:23:48.075Z] Checked if tokens are valid: false, expires at: 1787693887896
+[debug] [2026-08-26T01:23:48.075Z] Checked if tokens are valid: false, expires at: 1787693887896
+[debug] [2026-08-26T01:23:48.076Z] > refreshing access token with scopes: []
+[debug] [2026-08-26T01:23:48.081Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-08-26T01:23:48.082Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-26T01:23:48.349Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-08-26T01:23:48.371Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-08-26T01:23:48.349Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-26T01:23:48.383Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-26T01:23:48.383Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-26T01:23:48.383Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-08-26T01:23:48.371Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-26T01:23:48.404Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-26T01:23:48.404Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-26T01:23:48.404Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-08-26T01:23:48.748Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-26T01:23:48.749Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'aps-ambiental'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-08-26T01:23:48.753Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:48.753Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:48.753Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) [none]
+[debug] [2026-08-26T01:23:48.958Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) 200
+[debug] [2026-08-26T01:23:48.958Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) {"name":"projects/aps-ambiental/databases/(default)","uid":"e0db3b5d-90f8-4da6-9a91-3e624420856e","createTime":"2026-08-25T20:54:02.100544Z","updateTime":"2026-08-25T20:54:02.100544Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-08-26T00:23:51.472771Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_ENABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"IKSYqZORvZYDMLOG/O3UvJYD"}
+[info] i  firestore: reading indexes from backend/firebase/firestore/firestore.indexes.json... 
+[info] i  cloud.firestore: checking backend/firebase/firestore/firestore.rules for compilation errors... 
+[debug] [2026-08-26T01:23:48.961Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:48.961Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:48.961Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test [none]
+[debug] [2026-08-26T01:23:48.962Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test [omitted]
+[debug] [2026-08-26T01:23:49.400Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-26T01:23:49.400Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'aps-ambiental'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-08-26T01:23:49.406Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:49.406Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:49.407Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) [none]
+[debug] [2026-08-26T01:23:49.618Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) 200
+[debug] [2026-08-26T01:23:49.619Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) {"name":"projects/aps-ambiental/databases/(default)","uid":"e0db3b5d-90f8-4da6-9a91-3e624420856e","createTime":"2026-08-25T20:54:02.100544Z","updateTime":"2026-08-25T20:54:02.100544Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-08-26T00:23:52.127474Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_ENABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"ILGS0ZORvZYDMLOG/O3UvJYD"}
+[info] i  firestore: reading indexes from backend/firebase/firestore/firestore.indexes.json... 
+[info] i  cloud.firestore: checking backend/firebase/firestore/firestore.rules for compilation errors... 
+[debug] [2026-08-26T01:23:49.621Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:49.621Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:49.622Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test [none]
+[debug] [2026-08-26T01:23:49.622Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test [omitted]
+[debug] [2026-08-26T01:23:50.327Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test 200
+[debug] [2026-08-26T01:23:50.327Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test {}
+[info] +  cloud.firestore: rules file backend/firebase/firestore/firestore.rules compiled successfully 
+[debug] [2026-08-26T01:23:50.328Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:50.328Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:50.328Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases pageSize=10&pageToken=
+[debug] [2026-08-26T01:23:50.909Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test 200
+[debug] [2026-08-26T01:23:50.909Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test {}
+[info] +  cloud.firestore: rules file backend/firebase/firestore/firestore.rules compiled successfully 
+[debug] [2026-08-26T01:23:50.911Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:50.911Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:50.911Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases pageSize=10&pageToken=
+[debug] [2026-08-26T01:23:51.438Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases 200
+[debug] [2026-08-26T01:23:51.438Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases {"releases":[{"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95","createTime":"2026-08-25T21:19:36.394544Z","updateTime":"2026-08-25T21:19:36.394544Z"}]}
+[debug] [2026-08-26T01:23:51.439Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:51.439Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:51.440Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95 [none]
+[debug] [2026-08-26T01:23:51.527Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases 200
+[debug] [2026-08-26T01:23:51.527Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases {"releases":[{"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95","createTime":"2026-08-25T21:19:36.394544Z","updateTime":"2026-08-25T21:19:36.394544Z"}]}
+[debug] [2026-08-26T01:23:51.528Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:51.528Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:51.528Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95 [none]
+[debug] [2026-08-26T01:23:52.597Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95 200
+[debug] [2026-08-26T01:23:52.598Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95 [omitted]
+[info] i  firestore: uploading rules backend/firebase/firestore/firestore.rules... 
+[debug] [2026-08-26T01:23:52.599Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:52.600Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:52.600Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets [none]
+[debug] [2026-08-26T01:23:52.600Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets [omitted]
+[debug] [2026-08-26T01:23:52.628Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95 200
+[debug] [2026-08-26T01:23:52.629Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/dc323060-fb2f-4fce-8c72-658620a00c95 [omitted]
+[info] i  firestore: uploading rules backend/firebase/firestore/firestore.rules... 
+[debug] [2026-08-26T01:23:52.631Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:52.632Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:52.632Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets [none]
+[debug] [2026-08-26T01:23:52.632Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets [omitted]
+[debug] [2026-08-26T01:23:53.887Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets 200
+[debug] [2026-08-26T01:23:53.887Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets {"name":"projects/aps-ambiental/rulesets/232d3ce4-5167-4d79-a3c3-68939d26e341","source":{"files":[{"content":"rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /ocorrencias/{incidentId} {\n      allow read: if request.auth != null;\n      allow create: if request.auth != null\n        && request.resource.data.userId == request.auth.uid\n        && request.resource.data.id == incidentId\n        && request.resource.data.lat is number\n        && request.resource.data.lng is number\n        && request.resource.data.lat >= -90 && request.resource.data.lat <= 90\n        && request.resource.data.lng >= -180 && request.resource.data.lng <= 180\n        && request.resource.data.categoria is string;\n      allow update, delete: if request.auth != null\n        && resource.data.userId == request.auth.uid;\n    }\n  }\n}\n","name":"backend/firebase/firestore/firestore.rules"}]},"createTime":"2026-08-26T01:23:56.269711Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-08-26T01:23:53.888Z] [rules] created ruleset projects/aps-ambiental/rulesets/232d3ce4-5167-4d79-a3c3-68939d26e341
+[debug] [2026-08-26T01:23:53.888Z] [rules] releasing cloud.firestore with ruleset projects/aps-ambiental/rulesets/232d3ce4-5167-4d79-a3c3-68939d26e341
+[debug] [2026-08-26T01:23:53.889Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:53.889Z] Checked if tokens are valid: true, expires at: 1787711027349
+[debug] [2026-08-26T01:23:53.889Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore [none]
+[debug] [2026-08-26T01:23:53.890Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore {"release":{"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/232d3ce4-5167-4d79-a3c3-68939d26e341"}}
+[debug] [2026-08-26T01:23:53.947Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets 200
+[debug] [2026-08-26T01:23:53.947Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets {"name":"projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31","source":{"files":[{"content":"rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /ocorrencias/{incidentId} {\n      allow read: if request.auth != null;\n      allow create: if request.auth != null\n        && request.resource.data.userId == request.auth.uid\n        && request.resource.data.id == incidentId\n        && request.resource.data.lat is number\n        && request.resource.data.lng is number\n        && request.resource.data.lat >= -90 && request.resource.data.lat <= 90\n        && request.resource.data.lng >= -180 && request.resource.data.lng <= 180\n        && request.resource.data.categoria is string;\n      allow update, delete: if request.auth != null\n        && resource.data.userId == request.auth.uid;\n    }\n  }\n}\n","name":"backend/firebase/firestore/firestore.rules"}]},"createTime":"2026-08-26T01:23:56.316783Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-08-26T01:23:53.948Z] [rules] created ruleset projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31
+[debug] [2026-08-26T01:23:53.949Z] [rules] releasing cloud.firestore with ruleset projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31
+[debug] [2026-08-26T01:23:53.950Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:53.950Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:23:53.951Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore [none]
+[debug] [2026-08-26T01:23:53.951Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore {"release":{"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31"}}
+[debug] [2026-08-26T01:23:55.401Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore 200
+[debug] [2026-08-26T01:23:55.401Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore {"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/232d3ce4-5167-4d79-a3c3-68939d26e341","createTime":"2026-08-25T21:19:36.394544Z","updateTime":"2026-08-26T01:23:57.669209Z"}
+[debug] [2026-08-26T01:23:55.402Z] [rules] updated release projects/aps-ambiental/releases/cloud.firestore
+[info] +  firestore: released rules backend/firebase/firestore/firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/aps-ambiental/overview
+[debug] [2026-08-26T01:23:55.517Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore 200
+[debug] [2026-08-26T01:23:55.517Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore {"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31","createTime":"2026-08-25T21:19:36.394544Z","updateTime":"2026-08-26T01:23:57.901225Z"}
+[debug] [2026-08-26T01:23:55.517Z] [rules] updated release projects/aps-ambiental/releases/cloud.firestore
+[info] +  firestore: released rules backend/firebase/firestore/firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/aps-ambiental/overview
+[debug] [2026-08-26T01:24:34.406Z] ----------------------------------------------------------------------
+[debug] [2026-08-26T01:24:34.409Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\matensy\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project aps-ambiental --non-interactive
+[debug] [2026-08-26T01:24:34.410Z] CLI Version:   15.28.1
+[debug] [2026-08-26T01:24:34.410Z] Platform:      win32
+[debug] [2026-08-26T01:24:34.410Z] Node Version:  v22.20.0
+[debug] [2026-08-26T01:24:34.411Z] Detected Agent: codex_cli
+[debug] [2026-08-26T01:24:34.411Z] Time:          Tue Aug 25 2026 22:24:34 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-08-26T01:24:34.411Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-26T01:24:36.362Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-26T01:24:36.363Z] > authorizing via signed-in user (antoniomarcos3577@gmail.com)
+[debug] [2026-08-26T01:24:36.363Z] [iam] checking project aps-ambiental for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-08-26T01:24:36.372Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:36.373Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:36.375Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions [none]
+[debug] [2026-08-26T01:24:36.375Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions  x-goog-user-project=aps-ambiental
+[debug] [2026-08-26T01:24:36.376Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-08-26T01:24:37.389Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions 200
+[debug] [2026-08-26T01:24:37.389Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/aps-ambiental:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'aps-ambiental'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-08-26T01:24:37.395Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:37.395Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:37.395Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) [none]
+[debug] [2026-08-26T01:24:37.547Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) 200
+[debug] [2026-08-26T01:24:37.547Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/aps-ambiental/databases/(default) {"name":"projects/aps-ambiental/databases/(default)","uid":"e0db3b5d-90f8-4da6-9a91-3e624420856e","createTime":"2026-08-25T20:54:02.100544Z","updateTime":"2026-08-25T20:54:02.100544Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-08-26T00:24:40.055224Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_ENABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","enhancedTextSearchQueryMode":"ENHANCED_QUERY_MODE_ENABLED","etag":"II+2vqqRvZYDMLOG/O3UvJYD"}
+[info] i  firestore: reading indexes from backend/firebase/firestore/firestore.indexes.json... 
+[info] i  cloud.firestore: checking backend/firebase/firestore/firestore.rules for compilation errors... 
+[debug] [2026-08-26T01:24:37.549Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:37.549Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:37.550Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test [none]
+[debug] [2026-08-26T01:24:37.550Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test [omitted]
+[debug] [2026-08-26T01:24:38.823Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test 200
+[debug] [2026-08-26T01:24:38.824Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/aps-ambiental:test {}
+[info] +  cloud.firestore: rules file backend/firebase/firestore/firestore.rules compiled successfully 
+[debug] [2026-08-26T01:24:38.831Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:38.831Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:38.832Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases pageSize=10&pageToken=
+[debug] [2026-08-26T01:24:40.044Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases 200
+[debug] [2026-08-26T01:24:40.046Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases {"releases":[{"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31","createTime":"2026-08-25T21:19:36.394544Z","updateTime":"2026-08-26T01:23:57.901225Z"}]}
+[debug] [2026-08-26T01:24:40.071Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:40.090Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:40.102Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31 [none]
+[debug] [2026-08-26T01:24:41.774Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31 200
+[debug] [2026-08-26T01:24:41.811Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31 [omitted]
+[info] i  firestore: latest version of backend/firebase/firestore/firestore.rules already up to date, skipping upload... 
+[debug] [2026-08-26T01:24:42.404Z] [rules] releasing cloud.firestore with ruleset projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31
+[debug] [2026-08-26T01:24:42.441Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:42.449Z] Checked if tokens are valid: true, expires at: 1787711027371
+[debug] [2026-08-26T01:24:42.479Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore [none]
+[debug] [2026-08-26T01:24:42.488Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore {"release":{"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31"}}
+[debug] [2026-08-26T01:24:44.054Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore 200
+[debug] [2026-08-26T01:24:44.055Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/aps-ambiental/releases/cloud.firestore {"name":"projects/aps-ambiental/releases/cloud.firestore","rulesetName":"projects/aps-ambiental/rulesets/f47d751f-3b03-49bc-8dfd-42b700411f31","createTime":"2026-08-25T21:19:36.394544Z","updateTime":"2026-08-26T01:24:46.309212Z"}
+[debug] [2026-08-26T01:24:44.056Z] [rules] updated release projects/aps-ambiental/releases/cloud.firestore
+[info] +  firestore: released rules backend/firebase/firestore/firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/aps-ambiental/overview

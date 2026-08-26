@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -33,8 +34,13 @@ class AppInitializer {
     FirebaseIncidentRemoteDataSource? remote;
     try {
       await Firebase.initializeApp();
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
       remote = FirebaseIncidentRemoteDataSource();
-    } catch (_) {}
+    } catch (_) {
+      // Offline and Firebase setup failures must not prevent local reporting.
+    }
     final repository = IncidentRepositoryImpl(local: local, remote: remote);
     return AppDependencies(
       repository: repository,
