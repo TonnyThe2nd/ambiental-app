@@ -1,0 +1,9 @@
+{
+  "name": "UrbanEye API",
+  "type": "http",
+  "path": "/ping",
+  "method": "GET",
+  "expectedStatus": 200,
+  "intervalSeconds": 600,
+  "timeoutSeconds": 15
+}

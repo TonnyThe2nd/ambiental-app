@@ -11,6 +11,8 @@ class CreateIncidentUseCase {
     required String category,
     required double latitude,
     required double longitude,
+    required String reportedById,
+    required String reportedByName,
   }) async {
     if (imagePath.isEmpty || category.trim().isEmpty) {
       throw ArgumentError('Foto e categoria são obrigatórias.');
@@ -25,6 +27,8 @@ class CreateIncidentUseCase {
       latitude: latitude,
       longitude: longitude,
       createdAt: DateTime.now().toUtc(),
+      reportedById: reportedById,
+      reportedByName: reportedByName,
     );
     await _repository.save(incident);
     return incident;

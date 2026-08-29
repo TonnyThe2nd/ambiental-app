@@ -1,0 +1,33 @@
+name: Daily PostgreSQL backup
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > "urbaneye-$(date -u +%F).dump"
+      - name: Upload to Supabase Storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          file="$(find . -maxdepth 1 -name 'urbaneye-*.dump' -print -quit)"
+          curl --fail-with-body --retry 3 --request POST \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Content-Type: application/octet-stream" \
+            --upload-file "$file" \
+            "$SUPABASE_URL/storage/v1/object/backups/$(basename "$file")"

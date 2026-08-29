@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.5-alpine
+    environment:
+      POSTGRES_DB: urbaneye
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d urbaneye"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    hostname: urbaneye-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: urbaneye
+      RABBITMQ_DEFAULT_PASS: urbaneye
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    image: postgis/postgis:16-3.5-alpine
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+      - ./backend/database/migrations:/migrations:ro
+    command: >-
+      sh -c 'for file in /migrations/*.sql; do
+      psql -h postgres -U postgres -d urbaneye -v ON_ERROR_STOP=1 -f "$$file";
+      done'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: ./backend/api
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/urbaneye
+      JWT_SECRET: ${JWT_SECRET:-urbaneye-local-development-secret-change-in-production}
+      JWT_EXPIRE_MINUTES: 60
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: ./backend/api
+    command: python -m src.worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/urbaneye
+      RABBITMQ_URL: amqp://urbaneye:urbaneye@rabbitmq:5672/
+      WORKER_PREFETCH: 1
+      WORKER_MAX_RETRIES: 5
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+    volumes:
+      - ./backend/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  outbox-poller:
+    build: ./backend/api
+    command: python -m src.outbox_service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/urbaneye
+      RABBITMQ_URL: amqp://urbaneye:urbaneye@rabbitmq:5672/
+      OUTBOX_POLL_SECONDS: 2
+      OUTBOX_BATCH_SIZE: 50
+    volumes:
+      - ./backend/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

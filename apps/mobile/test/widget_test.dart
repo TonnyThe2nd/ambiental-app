@@ -18,6 +18,8 @@ void main() {
       category: 'alagamento',
       latitude: -23.5,
       longitude: -46.6,
+      reportedById: 'user-1',
+      reportedByName: 'Usuário Teste',
     );
     expect(incident.status, IncidentStatus.pending);
     expect(repository.saved.single.id, incident.id);
@@ -29,6 +31,8 @@ void main() {
         category: 'lixo',
         latitude: 91,
         longitude: 0,
+        reportedById: 'user-1',
+        reportedByName: 'Usuário Teste',
       ),
       throwsArgumentError,
     );

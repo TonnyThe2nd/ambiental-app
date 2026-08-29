@@ -16,6 +16,8 @@ class HiveIncidentLocalDataSource {
     'attempts': i.attempts,
     'imageUrl': i.imageUrl,
     'lastError': i.lastError,
+    'reportedById': i.reportedById,
+    'reportedByName': i.reportedByName,
   });
   List<Incident> all() => box.values
       .map(
@@ -33,6 +35,8 @@ class HiveIncidentLocalDataSource {
           attempts: m['attempts'] as int,
           imageUrl: m['imageUrl'] as String?,
           lastError: m['lastError'] as String?,
+          reportedById: m['reportedById'] as String?,
+          reportedByName: m['reportedByName'] as String?,
         ),
       )
       .toList();

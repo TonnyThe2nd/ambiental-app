@@ -1,12 +1,12 @@
 import '../../domain/entities/incident.dart';
 import '../../domain/repositories/incident_repository.dart';
 import '../datasources/hive_incident_local_data_source.dart';
-import '../../../../services/firebase/firebase_incident_remote_data_source.dart';
+import '../../../../services/remote/http_incident_remote_data_source.dart';
 
 class IncidentRepositoryImpl implements IncidentRepository {
   IncidentRepositoryImpl({required this.local, this.remote});
   final HiveIncidentLocalDataSource local;
-  final FirebaseIncidentRemoteDataSource? remote;
+  final HttpIncidentRemoteDataSource? remote;
   @override
   Future<void> save(Incident i) => local.put(i);
   @override
@@ -34,9 +34,7 @@ class IncidentRepositoryImpl implements IncidentRepository {
   Future<Incident> upload(Incident i) {
     final value = remote;
     if (value == null) {
-      throw StateError(
-        'Firebase não configurado. Execute flutterfire configure.',
-      );
+      throw StateError('API PostgreSQL não configurada. Defina API_BASE_URL.');
     }
     return value.upload(i);
   }

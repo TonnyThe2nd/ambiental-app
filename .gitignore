@@ -1,0 +1,14 @@
+# Local environment files
+.env
+**/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Flutter and editors
+.dart_tool/
+build/
+.idea/
+.vscode/
