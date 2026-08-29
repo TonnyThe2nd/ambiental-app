@@ -1,5 +1,6 @@
 import json
 import os
+from urllib.parse import quote
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -9,7 +10,20 @@ from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection
 
 from .models import IncidentInput
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
+
+
+def _rabbitmq_url() -> str:
+    explicit_url = os.getenv("RABBITMQ_URL")
+    if explicit_url:
+        return explicit_url
+    host = os.getenv("RABBITMQ_HOST", "localhost")
+    port = os.getenv("RABBITMQ_PORT", "5672")
+    user = quote(os.getenv("RABBITMQ_USER", "guest"), safe="")
+    password = quote(os.getenv("RABBITMQ_PASSWORD", "guest"), safe="")
+    return f"amqp://{user}:{password}@{host}:{port}/"
+
+
+RABBITMQ_URL = _rabbitmq_url()
 EVENT_EXCHANGE = "urbaneye.events"
 RETRY_EXCHANGE = "urbaneye.retry"
 DEAD_EXCHANGE = "urbaneye.dead"

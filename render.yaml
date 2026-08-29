@@ -1,0 +1,124 @@
+databases:
+  - name: urbaneye-postgres
+    plan: basic-256mb
+    databaseName: urbaneye
+    user: urbaneye
+    region: ohio
+    postgresMajorVersion: "16"
+    ipAllowList: []
+
+services:
+  - type: pserv
+    name: urbaneye-rabbitmq
+    runtime: image
+    plan: starter
+    region: ohio
+    image:
+      url: docker.io/library/rabbitmq:4.1-management-alpine
+    envVars:
+      - key: PORT
+        value: "5672"
+      - key: RABBITMQ_DEFAULT_USER
+        value: urbaneye
+      - key: RABBITMQ_DEFAULT_PASS
+        generateValue: true
+      - key: RABBITMQ_ERLANG_COOKIE
+        generateValue: true
+    disk:
+      name: rabbitmq-data
+      mountPath: /var/lib/rabbitmq
+      sizeGB: 1
+
+  - type: web
+    name: urbaneye-api
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./backend/api/Dockerfile.render
+    dockerContext: .
+    dockerCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    preDeployCommand: python -m src.migrate
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: urbaneye-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "60"
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: worker
+    name: urbaneye-worker
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./backend/api/Dockerfile.render
+    dockerContext: .
+    dockerCommand: python -m src.worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: urbaneye-postgres
+          property: connectionString
+      - key: RABBITMQ_HOST
+        fromService:
+          type: pserv
+          name: urbaneye-rabbitmq
+          property: host
+      - key: RABBITMQ_PORT
+        value: "5672"
+      - key: RABBITMQ_USER
+        value: urbaneye
+      - key: RABBITMQ_PASSWORD
+        fromService:
+          type: pserv
+          name: urbaneye-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_PASS
+      - key: WORKER_PREFETCH
+        value: "1"
+      - key: WORKER_MAX_RETRIES
+        value: "5"
+      - key: FCM_ENABLED
+        value: "false"
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/firebase-service-account.json
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: worker
+    name: urbaneye-outbox-poller
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./backend/api/Dockerfile.render
+    dockerContext: .
+    dockerCommand: python -m src.outbox_service
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: urbaneye-postgres
+          property: connectionString
+      - key: RABBITMQ_HOST
+        fromService:
+          type: pserv
+          name: urbaneye-rabbitmq
+          property: host
+      - key: RABBITMQ_PORT
+        value: "5672"
+      - key: RABBITMQ_USER
+        value: urbaneye
+      - key: RABBITMQ_PASSWORD
+        fromService:
+          type: pserv
+          name: urbaneye-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_PASS
+      - key: OUTBOX_POLL_SECONDS
+        value: "2"
+      - key: OUTBOX_BATCH_SIZE
+        value: "50"
+      - key: LOG_LEVEL
+        value: INFO
