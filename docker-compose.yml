@@ -28,10 +28,25 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
       interval: 5s
       timeout: 5s
       retries: 12
+    depends_on:
+      rabbitmq-permissions:
+        condition: service_completed_successfully
+
+  rabbitmq-permissions:
+    image: alpine:3.22
+    user: "0:0"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    command: >-
+      sh -ec 'chown 100:101 /var/lib/rabbitmq;
+      if [ -e /var/lib/rabbitmq/.erlang.cookie ]; then
+        chown 100:101 /var/lib/rabbitmq/.erlang.cookie;
+        chmod 400 /var/lib/rabbitmq/.erlang.cookie;
+      fi'
 
   migrate:
     image: postgis/postgis:16-3.5-alpine
@@ -40,7 +55,8 @@ services:
     volumes:
       - ./backend/database/migrations:/migrations:ro
     command: >-
-      sh -c 'for file in /migrations/*.sql; do
+      sh -ec 'until pg_isready -h postgres -U postgres -d urbaneye; do sleep 2; done;
+      for file in /migrations/*.sql; do
       psql -h postgres -U postgres -d urbaneye -v ON_ERROR_STOP=1 -f "$$file";
       done'
     depends_on:
@@ -67,11 +83,13 @@ services:
   worker:
     build: ./backend/api
     command: python -m src.worker
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/urbaneye
       RABBITMQ_URL: amqp://urbaneye:urbaneye@rabbitmq:5672/
       WORKER_PREFETCH: 1
       WORKER_MAX_RETRIES: 5
+      FCM_ENABLED: ${FCM_ENABLED:-false}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
     volumes:
       - ./backend/api:/app

@@ -18,6 +18,7 @@ logger = logging.getLogger("urbaneye.worker")
 MAX_RETRIES = int(os.getenv("WORKER_MAX_RETRIES", "5"))
 PREFETCH_COUNT = int(os.getenv("WORKER_PREFETCH", "1"))
 FCM_BATCH_SIZE, FCM_TIMEOUT_SECONDS = 500, 15
+FCM_ENABLED = os.getenv("FCM_ENABLED", "false").lower() in {"1", "true", "yes"}
 
 
 def retry_count(message: AbstractIncomingMessage) -> int:
@@ -34,14 +35,15 @@ async def persist_notifications(incident: IncidentInput, users: list[NearbyUser]
         return
     async with pool.connection() as connection:
         async with connection.transaction():
-            await connection.executemany(
-                """INSERT INTO notifications (id, user_id, incident_id, title, message, distance_km)
-                   VALUES (gen_random_uuid(), %s, %s, %s, %s, %s)
-                   ON CONFLICT (user_id, incident_id) DO NOTHING""",
-                [(u.id, incident.id, "Nova ocorrência perto de você",
-                  f"Foi registrado {category_label(incident.category)} a {u.distance_km:.1f} km de você.", u.distance_km)
-                 for u in users],
-            )
+            async with connection.cursor() as cursor:
+                await cursor.executemany(
+                    """INSERT INTO notifications (id, user_id, incident_id, title, message, distance_km)
+                       VALUES (gen_random_uuid(), %s, %s, %s, %s, %s)
+                       ON CONFLICT (user_id, incident_id) DO NOTHING""",
+                    [(u.id, incident.id, "Nova ocorrência perto de você",
+                      f"Foi registrado {category_label(incident.category)} a {u.distance_km:.1f} km de você.", u.distance_km)
+                     for u in users],
+                )
 
 
 def _send_fcm_batch(tokens: list[str], incident: IncidentInput):
@@ -64,6 +66,9 @@ async def dispatch_fcm(incident: IncidentInput, users: list[NearbyUser]) -> None
     tokens = list(dict.fromkeys(u.fcm_token for u in users if u.fcm_token))
     if not tokens:
         logger.info("Incidente %s sem tokens FCM elegíveis", incident.id)
+        return
+    if not FCM_ENABLED:
+        logger.warning("FCM desabilitado; notificações do incidente %s foram persistidas apenas no banco", incident.id)
         return
     batches = [tokens[i:i + FCM_BATCH_SIZE] for i in range(0, len(tokens), FCM_BATCH_SIZE)]
     try:
