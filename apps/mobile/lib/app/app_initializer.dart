@@ -32,7 +32,9 @@ class AppDependencies {
 }
 
 class AppInitializer {
-  static Future<AppDependencies> initialize({bool registerBackground = true}) async {
+  static Future<AppDependencies> initialize({
+    bool registerBackground = true,
+  }) async {
     WidgetsFlutterBinding.ensureInitialized();
     await Hive.initFlutter();
     final local = HiveIncidentLocalDataSource(

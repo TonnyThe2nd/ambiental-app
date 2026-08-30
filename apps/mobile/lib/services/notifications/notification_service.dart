@@ -12,29 +12,23 @@ import '../location/location_service.dart';
 class AppNotification {
   const AppNotification({
     required this.id,
-    required this.incidentId,
     required this.title,
     required this.message,
-    required this.distanceKm,
     required this.createdAt,
     this.readAt,
   });
 
   final String id;
-  final String incidentId;
   final String title;
   final String message;
-  final double distanceKm;
   final DateTime createdAt;
   final DateTime? readAt;
 
   factory AppNotification.fromJson(Map<String, dynamic> json) =>
       AppNotification(
         id: json['id'] as String,
-        incidentId: json['incidentId'] as String,
         title: json['title'] as String,
         message: json['message'] as String,
-        distanceKm: (json['distanceKm'] as num).toDouble(),
         createdAt: DateTime.parse(json['createdAt'] as String),
         readAt: json['readAt'] == null
             ? null
@@ -64,7 +58,6 @@ class NotificationService extends ChangeNotifier {
   AppNotification? _latestUnread;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
-  AppNotification? get latestUnread => _latestUnread;
   int get unreadCount =>
       _notifications.where((item) => item.readAt == null).length;
 
@@ -82,7 +75,9 @@ class NotificationService extends ChangeNotifier {
       await messaging.requestPermission();
       final token = await messaging.getToken();
       if (token != null) await _sendPushToken(token, location);
-      messaging.onTokenRefresh.listen((value) => _sendPushToken(value, location));
+      messaging.onTokenRefresh.listen(
+        (value) => _sendPushToken(value, location),
+      );
     } catch (error) {
       debugPrint('FCM não pôde ser inicializado: $error');
     }
@@ -135,10 +130,8 @@ class NotificationService extends ChangeNotifier {
     final current = _notifications[index];
     _notifications[index] = AppNotification(
       id: current.id,
-      incidentId: current.incidentId,
       title: current.title,
       message: current.message,
-      distanceKm: current.distanceKm,
       createdAt: current.createdAt,
       readAt: DateTime.now(),
     );
@@ -166,9 +159,7 @@ class NotificationService extends ChangeNotifier {
       _seenIds.addAll(items.map((item) => item.id));
       _latestUnread = announceNew && fresh.isNotEmpty ? fresh.first : null;
       notifyListeners();
-    } catch (_) {
-      // Oscilação de rede não deve interromper o restante do app.
-    }
+    } catch (_) {}
   }
 
   void _handleAuthChange() {

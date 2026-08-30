@@ -11,11 +11,15 @@ const _syncTask = 'urbaneye.backgroundSync';
 void backgroundSyncDispatcher() {
   Workmanager().executeTask((_, _) async {
     try {
-      final dependencies = await AppInitializer.initialize(registerBackground: false);
+      final dependencies = await AppInitializer.initialize(
+        registerBackground: false,
+      );
       await dependencies.sync.synchronize();
       final pending = await dependencies.repository.pending();
       if (pending.isNotEmpty) {
-        final attempts = pending.map((item) => item.attempts).reduce((a, b) => a > b ? a : b);
+        final attempts = pending
+            .map((item) => item.attempts)
+            .reduce((a, b) => a > b ? a : b);
         await BackgroundSync.schedule(attempts: attempts);
       }
       return true;
@@ -37,8 +41,8 @@ class BackgroundSync {
     final delay = attempts <= 0
         ? const Duration(minutes: 5)
         : attempts == 1
-            ? const Duration(minutes: 15)
-            : const Duration(hours: 1);
+        ? const Duration(minutes: 15)
+        : const Duration(hours: 1);
     await Workmanager().registerOneOffTask(
       'urbaneye-sync',
       _syncTask,

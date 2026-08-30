@@ -28,7 +28,8 @@ class HttpIncidentRemoteDataSource {
   Uri get _incidentsUri => _baseUri.resolve('/incidents');
 
   Future<Incident> upload(Incident incident) async {
-    final idempotencySource = '${incident.createdAt.toUtc().toIso8601String()}|'
+    final idempotencySource =
+        '${incident.createdAt.toUtc().toIso8601String()}|'
         '${incident.latitude.toStringAsFixed(6)}|${incident.longitude.toStringAsFixed(6)}|${incident.category}';
     final response = await _client.post(
       _incidentsUri,
@@ -40,11 +41,14 @@ class HttpIncidentRemoteDataSource {
         'longitude': incident.longitude,
         'createdAt': incident.createdAt.toUtc().toIso8601String(),
         'imageUrl': incident.imageUrl,
-        'idempotencyKey': sha256.convert(utf8.encode(idempotencySource)).toString(),
+        'idempotencyKey': sha256
+            .convert(utf8.encode(idempotencySource))
+            .toString(),
       }),
     );
-    // A retry of an already accepted local item is a successful idempotent outcome.
-    if (response.statusCode == 409) return incident.copyWith(status: IncidentStatus.synced);
+    if (response.statusCode == 409) {
+      return incident.copyWith(status: IncidentStatus.synced);
+    }
     _ensureSuccess(response, expectedStatus: 202);
     return _fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
