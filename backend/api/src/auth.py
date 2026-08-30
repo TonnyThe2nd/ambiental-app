@@ -11,7 +11,7 @@ from pwdlib import PasswordHash
 from psycopg.errors import UniqueViolation
 
 from .database import pool
-from .models import AuthResponse, LoginInput, RegisterInput, UserLocationInput, UserOutput
+from .models import AlertPreferencesInput, AuthResponse, LoginInput, RegisterInput, UserLocationInput, UserOutput
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET or len(JWT_SECRET) < 32:
@@ -70,17 +70,27 @@ async def update_user_location(user_id: UUID, data: UserLocationInput) -> None:
         await connection.commit()
 
 
+async def update_alert_preferences(user_id: UUID, data: AlertPreferencesInput) -> None:
+    async with pool.connection() as connection:
+        await connection.execute(
+            """UPDATE users SET alert_radius_m = %s, alert_categories = %s,
+               minimum_alert_severity = %s, alert_cooldown_minutes = %s WHERE id = %s""",
+            (data.radius_meters, data.categories, data.minimum_severity.value, data.cooldown_minutes, user_id),
+        )
+        await connection.commit()
+
+
 async def login_user(data: LoginInput) -> AuthResponse:
     async with pool.connection() as connection:
         result = await connection.execute(
-            "SELECT id, name, email, password_hash FROM users WHERE email = %s",
+            "SELECT id, name, email, password_hash, role, trust_score FROM users WHERE email = %s",
             (data.email.strip().lower(),),
         )
         row = await result.fetchone()
     valid = password_hash.verify(data.password, row["password_hash"] if row else dummy_hash)
     if row is None or not valid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail ou senha inválidos.")
-    user = UserOutput(id=row["id"], name=row["name"], email=row["email"])
+    user = UserOutput(id=row["id"], name=row["name"], email=row["email"], role=row["role"], trust_score=row["trust_score"])
     return AuthResponse(access_token=create_access_token(row["id"]), user=user)
 
 
@@ -100,11 +110,11 @@ async def get_current_user(
     except (InvalidTokenError, KeyError, ValueError) as error:
         raise unauthorized from error
     async with pool.connection() as connection:
-        result = await connection.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
+        result = await connection.execute("SELECT id, name, email, role, trust_score FROM users WHERE id = %s", (user_id,))
         row = await result.fetchone()
     if row is None:
         raise unauthorized
-    return UserOutput(id=row["id"], name=row["name"], email=row["email"])
+    return UserOutput(id=row["id"], name=row["name"], email=row["email"], role=row["role"], trust_score=row["trust_score"])
 
 
 CurrentUser = Annotated[UserOutput, Depends(get_current_user)]

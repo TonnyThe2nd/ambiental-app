@@ -2,6 +2,9 @@
 
 Sistema colaborativo de monitoramento ambiental urbano.
 
+> A arquitetura distribuída, o modelo de risco, moderação, alertas por proximidade e operação
+> estão descritos em [documentation/Plataforma-Vigilancia-Ambiental.md](documentation/Plataforma-Vigilancia-Ambiental.md).
+
 ## Visão geral
 
 Aplicativo mobile em Flutter para reportar ocorrências ambientais urbanas com foto, geolocalização e classificação manual pelo usuário. Os dados são sincronizados com Firebase e visualizados em mapa interativo.

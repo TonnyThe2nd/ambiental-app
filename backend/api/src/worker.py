@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from uuid import UUID
 
 import aio_pika
 from aio_pika import DeliveryMode, Message
@@ -37,11 +38,13 @@ async def persist_notifications(incident: IncidentInput, users: list[NearbyUser]
         async with connection.transaction():
             async with connection.cursor() as cursor:
                 await cursor.executemany(
-                    """INSERT INTO notifications (id, user_id, incident_id, title, message, distance_km)
-                       VALUES (gen_random_uuid(), %s, %s, %s, %s, %s)
+                    """INSERT INTO notifications (id, user_id, incident_id, title, message, distance_km, severity)
+                       SELECT gen_random_uuid(), %s, %s, %s, %s, %s, severity
+                       FROM incidents WHERE id = %s
                        ON CONFLICT (user_id, incident_id) DO NOTHING""",
                     [(u.id, incident.id, "Nova ocorrência perto de você",
-                      f"Foi registrado {category_label(incident.category)} a {u.distance_km:.1f} km de você.", u.distance_km)
+                      f"Foi registrado {category_label(incident.category)} a {u.distance_km:.1f} km de você.",
+                      u.distance_km, incident.id)
                      for u in users],
                 )
 
@@ -84,9 +87,30 @@ async def dispatch_fcm(incident: IncidentInput, users: list[NearbyUser]) -> None
 
 async def process_event(envelope: dict) -> IncidentInput:
     incident = IncidentInput.model_validate(envelope["data"])
-    users = await find_users_within_radius(incident.latitude, incident.longitude)
+    event_id = UUID(envelope["eventId"])
+    async with pool.connection() as connection:
+        result = await connection.execute(
+            "SELECT 1 FROM processed_events WHERE consumer = 'notification-worker' AND event_id = %s",
+            (event_id,),
+        )
+        if await result.fetchone():
+            logger.info("Evento %s já processado; ignorado", event_id)
+            return incident
+        result = await connection.execute("SELECT severity FROM incidents WHERE id = %s", (incident.id,))
+        row = await result.fetchone()
+    severity = row["severity"] if row else envelope["data"].get("severity", "moderado")
+    users = await find_users_within_radius(
+        incident.latitude, incident.longitude, incident.category, severity
+    )
     await persist_notifications(incident, users)
     await dispatch_fcm(incident, users)
+    async with pool.connection() as connection:
+        await connection.execute(
+            """INSERT INTO processed_events (consumer, event_id)
+               VALUES ('notification-worker', %s) ON CONFLICT DO NOTHING""",
+            (event_id,),
+        )
+        await connection.commit()
     return incident
 
 
