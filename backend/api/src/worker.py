@@ -38,13 +38,13 @@ async def persist_notifications(incident: IncidentInput, users: list[NearbyUser]
         async with connection.transaction():
             async with connection.cursor() as cursor:
                 await cursor.executemany(
-                    """INSERT INTO notifications (id, user_id, incident_id, title, message, distance_km, severity)
-                       SELECT gen_random_uuid(), %s, %s, %s, %s, %s, severity
+                    """INSERT INTO notifications (id, user_id, incident_id, title, message, distance_km, severity, reason, risk_score)
+                       SELECT gen_random_uuid(), %s, %s, %s, %s, %s, severity, %s, risk_score
                        FROM incidents WHERE id = %s
                        ON CONFLICT (user_id, incident_id) DO NOTHING""",
                     [(u.id, incident.id, "Nova ocorrência perto de você",
                       f"Foi registrado {category_label(incident.category)} a {u.distance_km:.1f} km de você.",
-                      u.distance_km, incident.id)
+                      u.distance_km, u.reason, incident.id)
                      for u in users],
                 )
 

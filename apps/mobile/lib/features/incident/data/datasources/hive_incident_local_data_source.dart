@@ -18,6 +18,16 @@ class HiveIncidentLocalDataSource {
     'lastError': i.lastError,
     'reportedById': i.reportedById,
     'reportedByName': i.reportedByName,
+    'severity': i.severity,
+    'workflowStatus': i.workflowStatus,
+    'riskScore': i.riskScore,
+    'confidenceScore': i.confidenceScore,
+    'priorityScore': i.priorityScore,
+    'confirmationCount': i.confirmationCount,
+    'rejectionCount': i.rejectionCount,
+    'complementCount': i.complementCount,
+    'updatedAt': i.updatedAt?.millisecondsSinceEpoch,
+    'nextAttemptAt': i.nextAttemptAt?.millisecondsSinceEpoch,
   });
   List<Incident> all() => box.values
       .map(
@@ -37,6 +47,16 @@ class HiveIncidentLocalDataSource {
           lastError: m['lastError'] as String?,
           reportedById: m['reportedById'] as String?,
           reportedByName: m['reportedByName'] as String?,
+          severity: m['severity'] as String? ?? 'moderado',
+          workflowStatus: m['workflowStatus'] as String? ?? 'reportado',
+          riskScore: (m['riskScore'] as num?)?.toDouble() ?? 50,
+          confidenceScore: (m['confidenceScore'] as num?)?.toDouble() ?? 50,
+          priorityScore: (m['priorityScore'] as num?)?.toDouble() ?? 50,
+          confirmationCount: m['confirmationCount'] as int? ?? 0,
+          rejectionCount: m['rejectionCount'] as int? ?? 0,
+          complementCount: m['complementCount'] as int? ?? 0,
+          updatedAt: m['updatedAt'] == null ? null : DateTime.fromMillisecondsSinceEpoch(m['updatedAt'] as int, isUtc: true),
+          nextAttemptAt: m['nextAttemptAt'] == null ? null : DateTime.fromMillisecondsSinceEpoch(m['nextAttemptAt'] as int, isUtc: true),
         ),
       )
       .toList();

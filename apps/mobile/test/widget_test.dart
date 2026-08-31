@@ -48,4 +48,6 @@ class _MemoryRepository implements IncidentRepository {
   Future<Incident> upload(Incident incident) async => incident;
   @override
   Stream<List<Incident>> watchRemote() => Stream.value(const []);
+  @override
+  Future<void> validate(String incidentId, String vote, {String? comment}) async {}
 }

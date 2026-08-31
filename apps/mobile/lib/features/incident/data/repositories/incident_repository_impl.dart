@@ -13,7 +13,8 @@ class IncidentRepositoryImpl implements IncidentRepository {
   Future<List<Incident>> getAll() async => local.all();
   @override
   Future<List<Incident>> pending() async =>
-      local.all().where((i) => i.status != IncidentStatus.synced).toList();
+      local.all().where((i) => i.status != IncidentStatus.synced &&
+          (i.nextAttemptAt == null || !i.nextAttemptAt!.isAfter(DateTime.now().toUtc()))).toList();
   @override
   Future<void> markSynced(Incident i, String imageUrl) => local.put(
     i.copyWith(
@@ -28,6 +29,9 @@ class IncidentRepositoryImpl implements IncidentRepository {
       status: IncidentStatus.failed,
       attempts: i.attempts + 1,
       lastError: error.toString(),
+      nextAttemptAt: DateTime.now().toUtc().add(Duration(
+        minutes: (1 << i.attempts.clamp(0, 6)) + (i.id.hashCode.abs() % 3),
+      )),
     ),
   );
   @override
@@ -42,4 +46,11 @@ class IncidentRepositoryImpl implements IncidentRepository {
   @override
   Stream<List<Incident>> watchRemote() =>
       remote?.watch() ?? Stream.value(const []);
+
+  @override
+  Future<void> validate(String incidentId, String vote, {String? comment}) async {
+    final value = remote;
+    if (value == null) throw StateError('API não configurada.');
+    await value.validate(incidentId, vote, comment: comment);
+  }
 }

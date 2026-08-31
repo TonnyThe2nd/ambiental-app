@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from uuid import UUID, uuid4
@@ -56,16 +57,31 @@ async def register_user(data: RegisterInput) -> AuthResponse:
 
 
 async def update_user_location(user_id: UUID, data: UserLocationInput) -> None:
+    route = None if data.route is None else json.dumps(
+        [{"latitude": point[0], "longitude": point[1]} for point in data.route]
+    )
     async with pool.connection() as connection:
         await connection.execute(
             """
             UPDATE users
             SET latitude = %s, longitude = %s,
                 location = ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-                fcm_token = COALESCE(%s, fcm_token), location_updated_at = NOW()
+                fcm_token = COALESCE(%s, fcm_token), location_updated_at = NOW(),
+                alert_route = CASE WHEN %s::jsonb IS NULL THEN alert_route
+                  WHEN jsonb_array_length(%s::jsonb) >= 2 THEN (
+                  SELECT ST_MakeLine(ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326)
+                                     ORDER BY p.ordinality)::geography
+                  FROM jsonb_to_recordset(%s::jsonb) WITH ORDINALITY AS p(latitude float8, longitude float8, ordinality bigint)
+                ) ELSE NULL END,
+                alert_route_expires_at = CASE WHEN %s::jsonb IS NULL THEN alert_route_expires_at
+                  WHEN jsonb_array_length(%s::jsonb) >= 2
+                  THEN NOW() + (%s * INTERVAL '1 minute') ELSE NULL END,
+                route_alert_radius_m = %s
             WHERE id = %s
             """,
-            (data.latitude, data.longitude, data.longitude, data.latitude, data.fcm_token, user_id),
+            (data.latitude, data.longitude, data.longitude, data.latitude, data.fcm_token,
+             route, route, route, route, route, data.route_ttl_minutes,
+             data.route_alert_radius_meters, user_id),
         )
         await connection.commit()
 
@@ -74,8 +90,10 @@ async def update_alert_preferences(user_id: UUID, data: AlertPreferencesInput) -
     async with pool.connection() as connection:
         await connection.execute(
             """UPDATE users SET alert_radius_m = %s, alert_categories = %s,
-               minimum_alert_severity = %s, alert_cooldown_minutes = %s WHERE id = %s""",
-            (data.radius_meters, data.categories, data.minimum_severity.value, data.cooldown_minutes, user_id),
+               minimum_alert_severity = %s, alert_cooldown_minutes = %s,
+               quiet_hours_start = %s, quiet_hours_end = %s WHERE id = %s""",
+            (data.radius_meters, data.categories, data.minimum_severity.value, data.cooldown_minutes,
+             data.quiet_hours_start, data.quiet_hours_end, user_id),
         )
         await connection.commit()
 

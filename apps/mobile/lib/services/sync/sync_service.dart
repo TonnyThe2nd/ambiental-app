@@ -9,15 +9,27 @@ class SyncService {
   final IncidentRepository _repository;
   final AuthService _auth;
   Future<int> synchronize() async {
-    if ((await Connectivity().checkConnectivity()).contains(
-      ConnectivityResult.none,
-    )) {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
       await BackgroundSync.schedule(attempts: 0);
       return 0;
     }
     var synced = 0;
-    for (final incident in await _repository.pending()) {
+    final queue = await _repository.pending();
+    queue.sort((a, b) {
+      final severity = {'critico': 3, 'moderado': 2, 'leve': 1};
+      final aScore = (severity[a.severity] ?? 2) * 100 + a.priorityScore;
+      final bScore = (severity[b.severity] ?? 2) * 100 + b.priorityScore;
+      return bScore.compareTo(aScore);
+    });
+    for (final incident in queue) {
       if (incident.reportedById != _auth.currentUser?.id) continue;
+      // Em rede móvel, preserva dados/bateria e envia primeiro apenas riscos altos.
+      if (connectivity.contains(ConnectivityResult.mobile) &&
+          incident.severity != 'critico' && incident.priorityScore < 75) {
+        await BackgroundSync.schedule(attempts: incident.attempts);
+        continue;
+      }
       try {
         final uploaded = await _repository.upload(incident);
         await _repository.markSynced(incident, uploaded.imageUrl ?? '');

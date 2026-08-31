@@ -8,4 +8,5 @@ abstract class IncidentRepository {
   Future<void> markFailed(Incident incident, Object error);
   Future<Incident> upload(Incident incident);
   Stream<List<Incident>> watchRemote();
+  Future<void> validate(String incidentId, String vote, {String? comment});
 }

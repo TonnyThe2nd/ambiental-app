@@ -54,15 +54,30 @@ class HttpIncidentRemoteDataSource {
   }
 
   Stream<List<Incident>> watch() async* {
-    yield await getAll();
+    final cache = <String, Incident>{};
+    DateTime? cursor;
+    final initial = await getAll();
+    for (final item in initial) { cache[item.id] = item; }
+    cursor = initial.map((item) => item.updatedAt).whereType<DateTime>().fold<DateTime?>(
+      null, (latest, value) => latest == null || value.isAfter(latest) ? value : latest,
+    );
+    yield cache.values.toList();
     await for (final _ in Stream<void>.periodic(const Duration(seconds: 15))) {
-      yield await getAll();
+      final changes = await getAll(updatedSince: cursor);
+      for (final item in changes) {
+        cache[item.id] = item;
+        if (item.updatedAt != null && (cursor == null || item.updatedAt!.isAfter(cursor))) cursor = item.updatedAt;
+      }
+      if (changes.isNotEmpty) yield cache.values.where((item) => item.isActive).toList();
     }
   }
 
-  Future<List<Incident>> getAll() async {
+  Future<List<Incident>> getAll({DateTime? updatedSince}) async {
+    final uri = updatedSince == null ? _incidentsUri : _incidentsUri.replace(
+      queryParameters: {'updated_since': updatedSince.toUtc().toIso8601String()},
+    );
     final response = await _client.get(
-      _incidentsUri,
+      uri,
       headers: _auth.authorizedHeaders(),
     );
     _ensureSuccess(response);
@@ -83,7 +98,25 @@ class HttpIncidentRemoteDataSource {
       status: IncidentStatus.synced,
       reportedById: reporter?['id'] as String?,
       reportedByName: reporter?['name'] as String?,
+      severity: json['severity'] as String? ?? 'moderado',
+      workflowStatus: json['workflowStatus'] as String? ?? 'reportado',
+      riskScore: (json['riskScore'] as num?)?.toDouble() ?? 50,
+      confidenceScore: (json['confidenceScore'] as num?)?.toDouble() ?? 50,
+      priorityScore: (json['priorityScore'] as num?)?.toDouble() ?? 50,
+      confirmationCount: json['confirmationCount'] as int? ?? 0,
+      rejectionCount: json['rejectionCount'] as int? ?? 0,
+      complementCount: json['complementCount'] as int? ?? 0,
+      updatedAt: json['updatedAt'] == null ? null : DateTime.parse(json['updatedAt'] as String),
     );
+  }
+
+  Future<void> validate(String incidentId, String vote, {String? comment}) async {
+    final response = await _client.put(
+      _baseUri.resolve('/incidents/$incidentId/community-validation'),
+      headers: _auth.authorizedHeaders(json: true),
+      body: jsonEncode({'vote': vote, if (comment != null) 'comment': comment}),
+    );
+    _ensureSuccess(response);
   }
 
   void _ensureSuccess(http.Response response, {int? expectedStatus}) {

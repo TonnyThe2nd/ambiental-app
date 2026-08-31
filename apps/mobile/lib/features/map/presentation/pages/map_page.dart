@@ -19,6 +19,9 @@ class _MapPageState extends State<MapPage> {
   final _mapController = MapController();
   LatLng? _userLocation;
   bool _locating = false;
+  final _categories = <String>{};
+  final _severities = <String>{};
+  bool _showDensity = true;
 
   @override
   void initState() {
@@ -82,7 +85,13 @@ class _MapPageState extends State<MapPage> {
       builder: (context, remote) => FutureBuilder<List<Incident>>(
         future: widget.repository.getAll(),
         builder: (context, local) {
-          final incidents = [...?local.data, ...?remote.data];
+          final byId = <String, Incident>{
+            for (final item in [...?local.data, ...?remote.data]) item.id: item,
+          };
+          final incidents = byId.values.where((item) => item.isActive &&
+            (_categories.isEmpty || _categories.contains(item.category)) &&
+            (_severities.isEmpty || _severities.contains(item.severity))).toList()
+            ..sort((a, b) => b.priorityScore.compareTo(a.priorityScore));
           return Stack(
             children: [
               ClipRRect(
@@ -101,6 +110,8 @@ class _MapPageState extends State<MapPage> {
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'urbaneye_mobile',
                     ),
+                    if (_showDensity)
+                      CircleLayer(circles: _densityCircles(incidents)),
                     MarkerLayer(
                       markers: [
                         ...incidents.map(
@@ -111,14 +122,15 @@ class _MapPageState extends State<MapPage> {
                             ),
                             width: 44,
                             height: 44,
-                            child: Tooltip(
-                              message: _markerDescription(incident),
-                              child: Icon(
-                                Icons.location_pin,
-                                color: _categoryColor(incident.category),
-                                size: 40,
-                                semanticLabel: _categoryLabel(
-                                  incident.category,
+                            child: GestureDetector(
+                              onTap: () => _showIncident(incident),
+                              child: Tooltip(
+                                message: _markerDescription(incident),
+                                child: Icon(
+                                  Icons.location_pin,
+                                  color: _severityColor(incident.severity),
+                                  size: incident.priorityScore >= 75 ? 44 : 38,
+                                  semanticLabel: _categoryLabel(incident.category),
                                 ),
                               ),
                             ),
@@ -175,6 +187,27 @@ class _MapPageState extends State<MapPage> {
                 ),
               ),
               Positioned(
+                left: 12,
+                right: 12,
+                top: 72,
+                child: Card(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(children: [
+                      ...['alagamento', 'lixo', 'incendio', 'poluicao'].map((value) =>
+                        FilterChip(label: Text(_categoryLabel(value)), selected: _categories.contains(value),
+                          onSelected: (selected) => setState(() => selected ? _categories.add(value) : _categories.remove(value)))),
+                      ...['critico', 'moderado'].map((value) =>
+                        FilterChip(label: Text(value), selected: _severities.contains(value),
+                          onSelected: (selected) => setState(() => selected ? _severities.add(value) : _severities.remove(value)))),
+                      FilterChip(label: const Text('Densidade'), selected: _showDensity,
+                        onSelected: (value) => setState(() => _showDensity = value)),
+                    ]),
+                  ),
+                ),
+              ),
+              Positioned(
                 right: 16,
                 bottom: 24,
                 child: FloatingActionButton.small(
@@ -195,6 +228,42 @@ class _MapPageState extends State<MapPage> {
       ),
     ),
   );
+
+  Future<void> _showIncident(Incident incident) async {
+    final vote = await showModalBottomSheet<String>(context: context, builder: (context) =>
+      SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(_categoryLabel(incident.category), style: Theme.of(context).textTheme.titleLarge),
+          Text('Risco ${incident.riskScore.toStringAsFixed(0)} · confiança ${incident.confidenceScore.toStringAsFixed(0)}%'),
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, children: [
+            FilledButton.icon(onPressed: () => Navigator.pop(context, 'confirmar'), icon: const Icon(Icons.check), label: const Text('Confirmar')),
+            OutlinedButton.icon(onPressed: () => Navigator.pop(context, 'complementar'), icon: const Icon(Icons.add_comment), label: const Text('Complementar')),
+            TextButton.icon(onPressed: () => Navigator.pop(context, 'rejeitar'), icon: const Icon(Icons.close), label: const Text('Não procede')),
+          ])
+        ]))));
+    if (vote == null) return;
+    try {
+      await widget.repository.validate(incident.id, vote);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Validação registrada.')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+}
+
+List<CircleMarker> _densityCircles(List<Incident> incidents) {
+  final cells = <String, List<Incident>>{};
+  for (final item in incidents) {
+    final key = '${(item.latitude * 100).floor()}:${(item.longitude * 100).floor()}';
+    cells.putIfAbsent(key, () => []).add(item);
+  }
+  return cells.values.where((items) => items.length >= 2).map((items) {
+    final lat = items.map((i) => i.latitude).reduce((a, b) => a + b) / items.length;
+    final lng = items.map((i) => i.longitude).reduce((a, b) => a + b) / items.length;
+    return CircleMarker(point: LatLng(lat, lng), radius: 18.0 + items.length.clamp(0, 20),
+      color: Colors.red.withValues(alpha: .18), borderColor: Colors.red.withValues(alpha: .45), borderStrokeWidth: 2);
+  }).toList();
 }
 
 String _markerDescription(Incident incident) {
@@ -208,12 +277,12 @@ String _categoryLabel(String category) => switch (category) {
   'alagamento' => 'Alagamento',
   'poluicao' => 'Poluição',
   'lixo' => 'Descarte de lixo',
+  'incendio' => 'Risco de incêndio',
   _ => 'Outro',
 };
 
-Color _categoryColor(String category) => switch (category) {
-  'alagamento' => Colors.blue,
-  'poluicao' => Colors.deepOrange,
-  'lixo' => Colors.green,
-  _ => const Color(0xFF176B5B),
+Color _severityColor(String severity) => switch (severity) {
+  'critico' => Colors.red,
+  'moderado' => Colors.orange,
+  _ => Colors.green,
 };

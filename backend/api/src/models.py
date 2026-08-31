@@ -39,12 +39,17 @@ class AlertPreferencesInput(BaseModel):
     categories: list[str] = Field(default_factory=list, max_length=30)
     minimum_severity: Severity = Field(default=Severity.MODERADO, validation_alias="minimumSeverity")
     cooldown_minutes: int = Field(default=60, ge=5, le=1440, validation_alias="cooldownMinutes")
+    quiet_hours_start: str | None = Field(default=None, validation_alias="quietHoursStart", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    quiet_hours_end: str | None = Field(default=None, validation_alias="quietHoursEnd", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 class UserLocationInput(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     fcm_token: str | None = Field(default=None, validation_alias="fcmToken", max_length=4096)
+    route: list[tuple[float, float]] | None = Field(default=None, max_length=500)
+    route_alert_radius_meters: int = Field(default=750, ge=100, le=5000, validation_alias="routeAlertRadiusMeters")
+    route_ttl_minutes: int = Field(default=120, ge=5, le=1440, validation_alias="routeTtlMinutes")
 
 
 class AuthResponse(BaseModel):
@@ -78,6 +83,12 @@ class IncidentOutput(IncidentInput):
     ecosystem_impact: str | None = Field(default=None, serialization_alias="ecosystemImpact")
     community_impact: str | None = Field(default=None, serialization_alias="communityImpact")
     workflow_status: str = Field(default="reportado", serialization_alias="workflowStatus")
+    confidence_score: float = Field(default=50, serialization_alias="confidenceScore")
+    priority_score: float = Field(default=50, serialization_alias="priorityScore")
+    confirmation_count: int = Field(default=0, serialization_alias="confirmationCount")
+    rejection_count: int = Field(default=0, serialization_alias="rejectionCount")
+    complement_count: int = Field(default=0, serialization_alias="complementCount")
+    updated_at: datetime | None = Field(default=None, serialization_alias="updatedAt")
 
 
 class IncidentAccepted(IncidentOutput):
@@ -99,6 +110,12 @@ class NotificationOutput(BaseModel):
 class ReviewInput(BaseModel):
     decision: str = Field(pattern=r"^(em_analise|validado|rejeitado|resolvido)$")
     notes: str | None = Field(default=None, max_length=2000)
+
+
+class CommunityValidationInput(BaseModel):
+    vote: str = Field(pattern=r"^(confirmar|rejeitar|complementar)$")
+    comment: str | None = Field(default=None, max_length=2000)
+    evidence_url: str | None = Field(default=None, validation_alias="evidenceUrl", max_length=2048)
 
 
 class EnvironmentalObservationInput(BaseModel):

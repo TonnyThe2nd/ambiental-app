@@ -47,7 +47,10 @@ class BackgroundSync {
       'urbaneye-sync',
       _syncTask,
       initialDelay: delay,
-      constraints: Constraints(networkType: NetworkType.connected),
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+        requiresBatteryNotLow: true,
+      ),
       existingWorkPolicy: ExistingWorkPolicy.replace,
     );
   }

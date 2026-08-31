@@ -1,15 +1,17 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg.types.json import Jsonb
 
 from .database import lifespan_pool, pool
 from .auth import CurrentUser, login_user, register_user, update_alert_preferences, update_user_location
 from .producer import DuplicateIncidentError, create_incident_with_outbox
+from .community_validation import validate_incident
 from .models import (
     AlertPreferencesInput,
+    CommunityValidationInput,
     AuthResponse,
     IncidentAccepted,
     EnvironmentalObservationInput,
@@ -102,19 +104,29 @@ async def create_incident(incident: IncidentInput, user: CurrentUser) -> Inciden
 
 
 @app.get("/incidents", response_model=list[IncidentOutput])
-async def list_incidents(_: CurrentUser) -> list[IncidentOutput]:
+async def list_incidents(
+    _: CurrentUser, updated_since: datetime | None = None,
+    categories: list[str] = Query(default=[]), severities: list[str] = Query(default=[]),
+    active_only: bool = True, limit: int = Query(default=500, ge=1, le=2000),
+) -> list[IncidentOutput]:
     async with pool.connection() as connection:
         async with connection.cursor() as cursor:
             await cursor.execute(
                 """
                 SELECT i.id, i.category, i.latitude, i.longitude, i.occurred_at, i.image_url,
                        i.severity, i.risk_score, i.health_impact, i.ecosystem_impact,
-                       i.community_impact, i.workflow_status, i.environmental_context,
+                       i.community_impact, i.workflow_status, i.environmental_context, i.updated_at,
+                       i.confidence_score, i.priority_score, i.confirmation_count,
+                       i.rejection_count, i.complement_count,
                        u.id AS user_id, u.name AS user_name, u.email AS user_email,
                        u.role AS user_role, u.trust_score AS user_trust_score
                 FROM incidents i LEFT JOIN users u ON u.id = i.reported_by
-                ORDER BY occurred_at DESC
-                """
+                WHERE (%s IS NULL OR i.updated_at > %s)
+                  AND (cardinality(%s::text[]) = 0 OR i.category = ANY(%s::text[]))
+                  AND (cardinality(%s::text[]) = 0 OR i.severity::text = ANY(%s::text[]))
+                  AND (%s = FALSE OR i.workflow_status NOT IN ('rejeitado', 'resolvido'))
+                ORDER BY i.priority_score DESC, i.updated_at DESC LIMIT %s
+                """, (updated_since, updated_since, categories, categories, severities, severities, active_only, limit)
             )
             rows = await cursor.fetchall()
     return [
@@ -129,12 +141,27 @@ async def list_incidents(_: CurrentUser) -> list[IncidentOutput]:
             risk_score=row["risk_score"], health_impact=row["health_impact"],
             ecosystem_impact=row["ecosystem_impact"], community_impact=row["community_impact"],
             workflow_status=row["workflow_status"],
+            updated_at=row["updated_at"], confidence_score=row["confidence_score"],
+            priority_score=row["priority_score"], confirmation_count=row["confirmation_count"],
+            rejection_count=row["rejection_count"], complement_count=row["complement_count"],
             reported_by={"id": row["user_id"], "name": row["user_name"], "email": row["user_email"],
                          "role": row["user_role"], "trustScore": row["user_trust_score"]}
             if row["user_id"] else None,
         )
         for row in rows
     ]
+
+
+@app.put("/incidents/{incident_id}/community-validation")
+async def community_validation(
+    incident_id: UUID, data: CommunityValidationInput, user: CurrentUser,
+) -> dict:
+    try:
+        return await validate_incident(incident_id, user.id, data)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail="Ocorrência não encontrada.") from error
+    except PermissionError as error:
+        raise HTTPException(status_code=409, detail="O autor não pode validar a própria ocorrência.") from error
 
 
 @app.get("/notifications", response_model=list[NotificationOutput])
