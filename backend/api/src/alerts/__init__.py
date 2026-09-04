@@ -1,0 +1,1 @@
+"""Proximity alert bounded context."""

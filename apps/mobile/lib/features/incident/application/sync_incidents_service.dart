@@ -1,11 +1,11 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import '../../features/incident/domain/repositories/incident_repository.dart';
-import '../auth/auth_service.dart';
-import 'background_sync.dart';
+import '../domain/repositories/incident_repository.dart';
+import '../../auth/application/auth_service.dart';
+import '../infrastructure/sync/background_sync.dart';
 
-class SyncService {
-  SyncService(this._repository, this._auth);
+class SyncIncidentsService {
+  SyncIncidentsService(this._repository, this._auth);
   final IncidentRepository _repository;
   final AuthService _auth;
   Future<int> synchronize() async {

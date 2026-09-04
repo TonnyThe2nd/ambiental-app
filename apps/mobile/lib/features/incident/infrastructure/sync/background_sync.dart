@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 
-import '../../app/app_initializer.dart';
+import '../../../../app/app_initializer.dart';
 
 const _syncTask = 'urbaneye.backgroundSync';
 

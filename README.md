@@ -1,5 +1,9 @@
 # UrbanEye
 
+> Arquitetura vigente: monólito modular em DDD com FastAPI, PostgreSQL/PostGIS,
+> RabbitMQ/outbox e aplicativo Flutter offline-first. Veja
+> [docs/arquitetura-ddd.md](docs/arquitetura-ddd.md).
+
 Sistema colaborativo de monitoramento ambiental urbano.
 
 > A arquitetura distribuída, o modelo de risco, moderação, alertas por proximidade e operação

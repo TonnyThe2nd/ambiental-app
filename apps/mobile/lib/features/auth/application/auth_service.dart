@@ -4,20 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-class AuthUser {
-  const AuthUser({required this.id, required this.name, required this.email});
-  final String id;
-  final String name;
-  final String email;
-
-  factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    email: json['email'] as String,
-  );
-
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'email': email};
-}
+import '../domain/entities/auth_user.dart';
 
 class AuthService extends ChangeNotifier {
   AuthService({

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../services/auth/auth_service.dart';
-import '../../../../services/location/location_service.dart';
+import '../../application/auth_service.dart';
+import '../../../../core/device/location_service.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({

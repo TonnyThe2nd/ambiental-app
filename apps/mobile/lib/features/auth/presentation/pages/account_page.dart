@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../services/auth/auth_service.dart';
-import '../../../../services/notifications/notification_service.dart';
+import '../../application/auth_service.dart';
+import '../../../alerts/application/notification_service.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../services/location/location_service.dart';
+import '../../../../core/device/location_service.dart';
 import '../../data/weather_service.dart';
 
 class WeatherPage extends StatefulWidget {

@@ -6,13 +6,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../features/incident/data/datasources/hive_incident_local_data_source.dart';
 import '../features/incident/data/repositories/incident_repository_impl.dart';
 import '../features/incident/domain/repositories/incident_repository.dart';
-import '../services/camera/camera_service.dart';
-import '../services/auth/auth_service.dart';
-import '../services/location/location_service.dart';
-import '../services/notifications/notification_service.dart';
-import '../services/remote/http_incident_remote_data_source.dart';
-import '../services/sync/sync_service.dart';
-import '../services/sync/background_sync.dart';
+import '../features/incident/infrastructure/camera/camera_service.dart';
+import '../features/auth/application/auth_service.dart';
+import '../core/device/location_service.dart';
+import '../features/alerts/application/notification_service.dart';
+import '../features/incident/infrastructure/remote/http_incident_remote_data_source.dart';
+import '../features/incident/application/sync_incidents_service.dart';
+import '../features/incident/infrastructure/sync/background_sync.dart';
 
 class AppDependencies {
   AppDependencies({
@@ -26,7 +26,7 @@ class AppDependencies {
   final IncidentRepository repository;
   final CameraService camera;
   final LocationService location;
-  final SyncService sync;
+  final SyncIncidentsService sync;
   final AuthService auth;
   final NotificationService notifications;
 }
@@ -50,7 +50,7 @@ class AppInitializer {
       repository: repository,
       camera: ImagePickerCameraService(),
       location: location,
-      sync: SyncService(repository, auth),
+      sync: SyncIncidentsService(repository, auth),
       auth: auth,
       notifications: notifications,
     );

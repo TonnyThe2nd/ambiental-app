@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import '../auth/auth_service.dart';
-import '../location/location_service.dart';
+import '../../auth/application/auth_service.dart';
+import '../../../core/device/location_service.dart';
 
 class AppNotification {
   const AppNotification({

@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
-import '../../features/incident/domain/entities/incident.dart';
-import '../auth/auth_service.dart';
+import '../../domain/entities/incident.dart';
+import '../../../auth/application/auth_service.dart';
 
 class HttpIncidentRemoteDataSource {
   HttpIncidentRemoteDataSource(
