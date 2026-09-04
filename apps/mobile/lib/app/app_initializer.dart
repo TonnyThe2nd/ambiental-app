@@ -42,8 +42,8 @@ class AppInitializer {
     );
     final auth = AuthService();
     await auth.restoreSession();
-    final notifications = NotificationService(auth);
     final location = GeolocatorLocationService();
+    final notifications = NotificationService(auth, location);
     final remote = HttpIncidentRemoteDataSource(auth);
     final repository = IncidentRepositoryImpl(local: local, remote: remote);
     final dependencies = AppDependencies(
@@ -57,7 +57,7 @@ class AppInitializer {
     if (registerBackground) {
       await BackgroundSync.initialize();
       await BackgroundSync.schedule(attempts: 0);
-      unawaited(notifications.registerPushToken(location));
+      unawaited(notifications.registerPushToken());
     }
     return dependencies;
   }

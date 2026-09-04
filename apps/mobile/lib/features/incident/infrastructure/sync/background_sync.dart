@@ -15,12 +15,15 @@ void backgroundSyncDispatcher() {
         registerBackground: false,
       );
       await dependencies.sync.synchronize();
+      await dependencies.notifications.checkProximity(background: true);
       final pending = await dependencies.repository.pending();
       if (pending.isNotEmpty) {
         final attempts = pending
             .map((item) => item.attempts)
             .reduce((a, b) => a > b ? a : b);
         await BackgroundSync.schedule(attempts: attempts);
+      } else {
+        await BackgroundSync.schedule(attempts: 0);
       }
       return true;
     } catch (error) {

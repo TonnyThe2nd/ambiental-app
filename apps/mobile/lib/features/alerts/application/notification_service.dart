@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -37,7 +38,7 @@ class AppNotification {
 }
 
 class NotificationService extends ChangeNotifier {
-  NotificationService(this._auth, {http.Client? client, String? baseUrl})
+  NotificationService(this._auth, this._location, {http.Client? client, String? baseUrl})
     : _client = client ?? http.Client(),
       _baseUri = Uri.parse(
         baseUrl ??
@@ -50,11 +51,17 @@ class NotificationService extends ChangeNotifier {
   }
 
   final AuthService _auth;
+  final LocationService _location;
   final http.Client _client;
   final Uri _baseUri;
   final _seenIds = <String>{};
   final _notifications = <AppNotification>[];
   Timer? _timer;
+  Timer? _locationTimer;
+  StreamSubscription<RemoteMessage>? _foregroundMessages;
+  StreamSubscription<RemoteMessage>? _openedMessages;
+  StreamSubscription<String>? _tokenRefresh;
+  Location? _lastSentLocation;
   AppNotification? _latestUnread;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
@@ -67,48 +74,84 @@ class NotificationService extends ChangeNotifier {
     return notification;
   }
 
-  Future<void> registerPushToken(LocationService location) async {
+  Future<void> registerPushToken() async {
     if (!_auth.isAuthenticated) return;
     try {
       await Firebase.initializeApp();
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();
       final token = await messaging.getToken();
-      if (token != null) await _sendPushToken(token, location);
-      messaging.onTokenRefresh.listen(
-        (value) => _sendPushToken(value, location),
+      if (token != null) await _sendPosition(token: token, force: true);
+      await _tokenRefresh?.cancel();
+      _tokenRefresh = messaging.onTokenRefresh.listen(
+        (value) => _sendPosition(token: value, force: true),
       );
+      await _foregroundMessages?.cancel();
+      _foregroundMessages = FirebaseMessaging.onMessage.listen((_) => _poll());
+      await _openedMessages?.cancel();
+      _openedMessages = FirebaseMessaging.onMessageOpenedApp.listen((_) => _poll());
     } catch (error) {
       debugPrint('FCM não pôde ser inicializado: $error');
     }
   }
 
-  Future<void> _sendPushToken(String token, LocationService location) async {
+  Future<void> checkProximity({bool background = false}) =>
+      _sendPosition(force: true, background: background);
+
+  Future<void> _sendPosition({String? token, bool force = false, bool background = false}) async {
     try {
-      final position = await location.current();
-      await _client.put(
+      final position = await _location.current(background: background);
+      final previous = _lastSentLocation;
+      if (!force && previous != null) {
+        if (_distanceMeters(previous, position) < 250) return;
+      }
+      final response = await _client.put(
         _baseUri.resolve('/auth/me/location'),
         headers: _auth.authorizedHeaders(json: true),
         body: jsonEncode({
           'latitude': position.latitude,
           'longitude': position.longitude,
-          'fcmToken': token,
+          'fcmToken': ?token,
         }),
       );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        _lastSentLocation = position;
+        unawaited(_poll());
+      }
     } catch (error) {
-      debugPrint('Registro do token FCM adiado: $error');
+      debugPrint('Atualização de proximidade adiada: $error');
     }
+  }
+
+  double _distanceMeters(Location a, Location b) {
+    const earthRadius = 6371000.0;
+    final lat1 = a.latitude * math.pi / 180;
+    final lat2 = b.latitude * math.pi / 180;
+    final deltaLat = (b.latitude - a.latitude) * math.pi / 180;
+    final deltaLon = (b.longitude - a.longitude) * math.pi / 180;
+    final value = math.sin(deltaLat / 2) * math.sin(deltaLat / 2) +
+        math.cos(lat1) * math.cos(lat2) *
+            math.sin(deltaLon / 2) * math.sin(deltaLon / 2);
+    return earthRadius * 2 * math.atan2(math.sqrt(value), math.sqrt(1 - value));
   }
 
   void start() {
     if (!_auth.isAuthenticated || _timer != null) return;
     _poll();
     _timer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
+    unawaited(_sendPosition(force: true));
+    _locationTimer = Timer.periodic(
+      const Duration(minutes: 2),
+      (_) => _sendPosition(),
+    );
   }
 
   void stop({bool clear = false}) {
     _timer?.cancel();
     _timer = null;
+    _locationTimer?.cancel();
+    _locationTimer = null;
+    _lastSentLocation = null;
     if (clear) {
       _seenIds.clear();
       _notifications.clear();
@@ -165,6 +208,7 @@ class NotificationService extends ChangeNotifier {
   void _handleAuthChange() {
     if (_auth.isAuthenticated) {
       start();
+      unawaited(registerPushToken());
     } else {
       stop(clear: true);
     }
@@ -174,6 +218,9 @@ class NotificationService extends ChangeNotifier {
   void dispose() {
     _auth.removeListener(_handleAuthChange);
     stop();
+    _foregroundMessages?.cancel();
+    _openedMessages?.cancel();
+    _tokenRefresh?.cancel();
     super.dispose();
   }
 }

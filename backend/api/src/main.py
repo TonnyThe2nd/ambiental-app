@@ -9,6 +9,7 @@ from .database import lifespan_pool, pool
 from .auth import CurrentUser, login_user, register_user, update_alert_preferences, update_user_location
 from .producer import DuplicateIncidentError, create_incident_with_outbox
 from .community_validation import validate_incident
+from .alerts.dependencies import evaluate_user_proximity
 from .models import (
     AlertPreferencesInput,
     CommunityValidationInput,
@@ -59,6 +60,7 @@ async def me(user: CurrentUser) -> UserOutput:
 @app.put("/auth/me/location", status_code=status.HTTP_204_NO_CONTENT)
 async def update_location(data: UserLocationInput, user: CurrentUser) -> Response:
     await update_user_location(user.id, data)
+    await evaluate_user_proximity.execute(user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

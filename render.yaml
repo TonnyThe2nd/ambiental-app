@@ -48,6 +48,10 @@ services:
         generateValue: true
       - key: JWT_EXPIRE_MINUTES
         value: "60"
+      - key: FCM_ENABLED
+        value: "true"
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/firebase-service-account.json
       - key: LOG_LEVEL
         value: INFO
 
@@ -83,7 +87,7 @@ services:
       - key: WORKER_MAX_RETRIES
         value: "5"
       - key: FCM_ENABLED
-        value: "false"
+        value: "true"
       - key: GOOGLE_APPLICATION_CREDENTIALS
         value: /etc/secrets/firebase-service-account.json
       - key: LOG_LEVEL

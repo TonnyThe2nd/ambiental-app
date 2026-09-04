@@ -6,17 +6,20 @@ class Location {
 }
 
 abstract class LocationService {
-  Future<Location> current();
+  Future<Location> current({bool background = false});
 }
 
 class GeolocatorLocationService implements LocationService {
   @override
-  Future<Location> current() async {
+  Future<Location> current({bool background = false}) async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw StateError('Ative o serviço de localização.');
     }
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (background && permission == LocationPermission.whileInUse) {
       permission = await Geolocator.requestPermission();
     }
     if (permission == LocationPermission.denied ||

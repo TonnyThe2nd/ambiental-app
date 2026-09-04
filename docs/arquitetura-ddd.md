@@ -67,3 +67,14 @@ apps/mobile/lib/
 - Outbox + RabbitMQ mantêm entrega assíncrona e idempotência.
 - Hive mantém a fila offline-first.
 - Firebase permanece como canal de push, não como banco primário atual.
+
+## Alertas por entrada em área
+
+O aplicativo envia a posição ao iniciar uma sessão, a cada deslocamento relevante (mínimo de
+250 metros) e em tarefas periódicas de segundo plano. O endpoint de localização persiste a
+posição e executa `EvaluateUserProximity`. O adaptador PostgreSQL usa `ST_DWithin` para encontrar
+incidentes ativos dentro do raio configurado pelo cidadão e cria uma notificação idempotente.
+Depois do commit, `FirebasePushNotificationGateway` entrega o push ao token do dispositivo.
+
+A chave única `(user_id, incident_id)` garante uma notificação por ocorrência. Preferências de
+categoria, severidade mínima, horário silencioso e autoria são aplicadas antes da criação.

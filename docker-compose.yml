@@ -70,6 +70,8 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/urbaneye
       JWT_SECRET: ${JWT_SECRET:-urbaneye-local-development-secret-change-in-production}
       JWT_EXPIRE_MINUTES: 60
+      FCM_ENABLED: ${FCM_ENABLED:-false}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
     ports:
       - "8000:8000"
     volumes:

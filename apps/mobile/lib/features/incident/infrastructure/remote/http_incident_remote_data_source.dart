@@ -114,7 +114,7 @@ class HttpIncidentRemoteDataSource {
     final response = await _client.put(
       _baseUri.resolve('/incidents/$incidentId/community-validation'),
       headers: _auth.authorizedHeaders(json: true),
-      body: jsonEncode({'vote': vote, if (comment != null) 'comment': comment}),
+      body: jsonEncode({'vote': vote, 'comment': ?comment}),
     );
     _ensureSuccess(response);
   }
