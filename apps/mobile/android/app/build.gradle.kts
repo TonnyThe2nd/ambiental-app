@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// A chave de debug é pública e compartilhada por todos os projetos Flutter: assinar o
+// release com ela permite que qualquer um publique um APK que o Android aceita como
+// "atualização" deste app. O keystore próprio fica fora do Git (ver key.properties.example).
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+val hasReleaseKeystore = keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "com.urbaneye.urbaneye_mobile"
@@ -21,9 +34,22 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            // Sem key.properties o build fica sem assinatura de release em vez de cair
+            // silenciosamente na chave de debug: o erro aparece no build, não na loja.
+            signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release") else null
         }
     }
 }

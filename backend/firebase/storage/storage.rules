@@ -1,11 +1,17 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /incidents/{incidentId}.jpg {
+    // O caminho inclui o uid de quem envia: sem isso, qualquer autenticado podia criar
+    // incidents/<uuid-alheio>.jpg e, como `update` é negado, bloquear para sempre o
+    // upload da evidência real de uma ocorrência que não é dele. Os UUIDs de incidente
+    // aparecem no feed, então "chegar primeiro" era trivial.
+    match /incidents/{uid}/{incidentId}.jpg {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
+      allow create: if request.auth != null && uid == request.auth.uid
         && request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+        // Lista explícita no lugar de matches('image/.*'), que aceitava image/svg+xml —
+        // SVG executa JavaScript quando aberto em contexto web.
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
       allow update, delete: if false;
     }
   }

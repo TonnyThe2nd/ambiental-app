@@ -4,6 +4,9 @@
 > RabbitMQ/outbox e aplicativo Flutter offline-first. Veja
 > [docs/arquitetura-ddd.md](docs/arquitetura-ddd.md).
 
+> Procedimentos de segurança e conformidade (chaves, keystore, sessões, exclusão de conta
+> e backup): [docs/seguranca.md](docs/seguranca.md).
+
 Sistema colaborativo de monitoramento ambiental urbano.
 
 > A arquitetura distribuída, o modelo de risco, moderação, alertas por proximidade e operação
