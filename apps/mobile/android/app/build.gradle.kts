@@ -6,9 +6,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// A chave de debug é pública e compartilhada por todos os projetos Flutter: assinar o
-// release com ela permite que qualquer um publique um APK que o Android aceita como
-// "atualização" deste app. O keystore próprio fica fora do Git (ver key.properties.example).
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) {
@@ -47,8 +44,6 @@ android {
 
     buildTypes {
         release {
-            // Sem key.properties o build fica sem assinatura de release em vez de cair
-            // silenciosamente na chave de debug: o erro aparece no build, não na loja.
             signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release") else null
         }
     }

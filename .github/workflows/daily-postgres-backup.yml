@@ -5,11 +5,6 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
 
-# O dump traz o banco inteiro — hashes de senha, e-mails e a posição de cada cidadão.
-# Ele é cifrado com AES-256 antes de sair do runner: o bucket nunca recebe texto claro.
-# Secrets necessários: DATABASE_URL, BACKUP_ENCRYPTION_PASSPHRASE, SUPABASE_URL,
-# SUPABASE_SERVICE_ROLE_KEY. A passphrase fica em secret separado do acesso ao bucket,
-# para que vazar um não entregue o outro.
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -33,8 +28,6 @@ jobs:
             exit 1
           fi
           file="$(find . -maxdepth 1 -name 'urbaneye-*.dump' -print -quit)"
-          # --batch/--passphrase-fd 0 mantêm a passphrase fora da linha de comando,
-          # que é visível para outros processos do runner.
           printf '%s' "$BACKUP_ENCRYPTION_PASSPHRASE" | gpg --batch --yes \
             --symmetric --cipher-algo AES256 --passphrase-fd 0 \
             --output "$file.gpg" "$file"
@@ -52,9 +45,6 @@ jobs:
             --header "Content-Type: application/octet-stream" \
             --upload-file "$file" \
             "$SUPABASE_URL/storage/v1/object/backups/$(basename "$file")"
-      # Retenção: apaga do bucket os backups com mais de BACKUP_RETENTION_DAYS dias.
-      # Guardar cópias indefinidamente amplia a janela de exposição de dados pessoais
-      # e contraria a limitação de conservação da LGPD (art. 15, I).
       - name: Apply retention policy
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

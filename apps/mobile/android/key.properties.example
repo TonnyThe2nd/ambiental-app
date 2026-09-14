@@ -1,14 +1,4 @@
-# Modelo do keystore de release. Copie para android/key.properties (já ignorado pelo
-# Git) e preencha com os dados do keystore gerado localmente:
-#
-#   keytool -genkey -v -keystore ~/urbaneye-release.jks -storetype JKS \
-#     -keyalg RSA -keysize 2048 -validity 10000 -alias urbaneye
-#
-# O arquivo .jks e este key.properties NUNCA entram no repositório: quem tiver a chave
-# consegue publicar atualizações do app. Guarde uma cópia em cofre de senhas — perder o
-# keystore significa não conseguir mais atualizar o app publicado na Play Store.
 storePassword=senha-do-keystore
 keyPassword=senha-da-chave
 keyAlias=urbaneye
-# Caminho relativo à pasta android/ ou absoluto.
 storeFile=../urbaneye-release.jks
