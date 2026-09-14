@@ -196,8 +196,6 @@ class NotificationService extends ChangeNotifier {
         _baseUri.resolve('/notifications?unread_only=false'),
         headers: _auth.authorizedHeaders(),
       );
-      // O polling roda a cada 20 s: sem tratar o 401 ele bate para sempre num token
-      // morto, sem nunca levar a pessoa de volta para a tela de login.
       if (response.statusCode == 401) {
         await _auth.handleUnauthorized();
         return;

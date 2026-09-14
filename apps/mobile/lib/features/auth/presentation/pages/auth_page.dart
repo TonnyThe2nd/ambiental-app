@@ -39,9 +39,6 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => loading = true);
     try {
       if (register) {
-        // O cadastro não pede GPS: exigir localização exata antes de qualquer
-        // consentimento informado não se sustenta como base legal (LGPD). A permissão
-        // é pedida depois, no primeiro uso do mapa e dos alertas de proximidade.
         await widget.auth.register(
           name: _name.text,
           email: _email.text,

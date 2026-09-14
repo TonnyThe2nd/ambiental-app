@@ -113,8 +113,6 @@ class AccountPage extends StatelessWidget {
               label: const Text('Sair da conta'),
             ),
             const SizedBox(height: 12),
-            // Direito de eliminação (LGPD art. 18, VI): precisa estar ao alcance de
-            // quem usa o app, não só como endpoint da API.
             TextButton.icon(
               onPressed: () => _confirmDeletion(context),
               icon: const Icon(Icons.delete_outline, color: Color(0xFFB3261E)),

@@ -120,8 +120,6 @@ class HttpIncidentRemoteDataSource {
   }
 
   void _ensureSuccess(http.Response response, {int? expectedStatus}) {
-    // Sem este caso, um token expirado só virava "falha de envio": a ocorrência ficava
-    // reagendando para sempre e o app nunca pedia login de novo.
     if (response.statusCode == 401) {
       unawaited(_auth.handleUnauthorized());
       throw const AuthException(sessionExpiredMessage);

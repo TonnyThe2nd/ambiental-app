@@ -52,8 +52,6 @@ class AuthService extends ChangeNotifier {
         'password': password,
       });
 
-  /// [latitude]/[longitude] são opcionais: negar o GPS não pode impedir o cadastro.
-  /// A localização é pedida depois, no primeiro uso do mapa.
   Future<void> register({
     required String name,
     required String email,
@@ -88,16 +86,11 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Encerra a sessão local quando o servidor recusa o token.
-  ///
-  /// Sem isso o app continua tentando usar um token expirado indefinidamente, sem
-  /// nunca pedir login de novo.
   Future<void> handleUnauthorized() async {
     if (_token == null) return;
     await _clearSession();
   }
 
-  /// Apaga a conta (LGPD art. 18, VI) e encerra a sessão.
   Future<void> deleteAccount() async {
     final response = await _client.delete(
       _baseUri.resolve('/auth/me'),
@@ -142,8 +135,6 @@ class AuthService extends ChangeNotifier {
   Future<void> logout() async {
     final token = _token;
     if (token != null) {
-      // Revoga o token no servidor: apagar só a credencial do aparelho deixaria a
-      // sessão válida até expirar.
       try {
         await _client
             .post(
@@ -151,9 +142,7 @@ class AuthService extends ChangeNotifier {
               headers: {'Authorization': 'Bearer $token'},
             )
             .timeout(const Duration(seconds: 10));
-      } catch (_) {
-        // Sem rede o token expira sozinho; a sessão local sai de qualquer forma.
-      }
+      } catch (_) {}
     }
     await _clearSession();
   }
