@@ -48,6 +48,12 @@ services:
         generateValue: true
       - key: JWT_EXPIRE_MINUTES
         value: "60"
+      # Desliga /docs e /openapi.json e liga o Strict-Transport-Security.
+      - key: ENV
+        value: production
+      # Origens do app web autorizadas a chamar a API, separadas por vírgula.
+      - key: ALLOWED_ORIGINS
+        sync: false
       - key: FCM_ENABLED
         value: "true"
       - key: GOOGLE_APPLICATION_CREDENTIALS

@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import jwt
 
@@ -14,10 +14,23 @@ class JwtTokenService:
 
     def create(self, user_id: UUID) -> str:
         now = datetime.now(timezone.utc)
+        # O jti identifica esta sessão específica: sem ele, revogar um token vazado
+        # exigiria trocar o JWT_SECRET e deslogar todo mundo junto.
         return jwt.encode(
-            {"sub": str(user_id), "iat": now, "exp": now + timedelta(minutes=self._minutes)},
+            {"sub": str(user_id), "jti": str(uuid4()), "iat": now,
+             "exp": now + timedelta(minutes=self._minutes)},
             self._secret, algorithm="HS256",
         )
 
+    def claims(self, token: str) -> dict:
+        return jwt.decode(token, self._secret, algorithms=["HS256"])
+
     def subject(self, token: str) -> UUID:
-        return UUID(jwt.decode(token, self._secret, algorithms=["HS256"])["sub"])
+        return UUID(self.claims(token)["sub"])
+
+    def identity(self, token: str) -> tuple[UUID, UUID | None, datetime]:
+        """Devolve (usuário, jti, expiração) de um token já validado."""
+        payload = self.claims(token)
+        raw_jti = payload.get("jti")
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        return UUID(payload["sub"]), UUID(raw_jti) if raw_jti else None, expires_at

@@ -20,7 +20,7 @@ class PostgresProximityAlertRepository:
                          SELECT i.id, i.category, i.severity::text AS severity,
                                 ST_Distance(u.location, i.location) / 1000.0 AS distance_km
                          FROM users u JOIN incidents i ON ST_DWithin(u.location, i.location, u.alert_radius_m)
-                         WHERE u.id = %s AND u.location IS NOT NULL
+                         WHERE u.id = %s AND u.location IS NOT NULL AND u.deleted_at IS NULL
                            AND i.workflow_status NOT IN ('rejeitado', 'resolvido')
                            AND i.reported_by IS DISTINCT FROM u.id
                            AND (cardinality(u.alert_categories) = 0 OR i.category = ANY(u.alert_categories))
