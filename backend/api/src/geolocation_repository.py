@@ -27,7 +27,7 @@ async def find_users_within_radius(
                          ST_DWithin(alert_route, {point_sql}, route_alert_radius_m)
                          THEN 'route' ELSE 'proximity' END AS reason
                 FROM users
-                WHERE location IS NOT NULL
+                WHERE location IS NOT NULL AND deleted_at IS NULL
                   AND (ST_DWithin(location, {point_sql}, alert_radius_m) OR
                        (alert_route IS NOT NULL AND alert_route_expires_at > NOW() AND
                         ST_DWithin(alert_route, {point_sql}, route_alert_radius_m)))

@@ -1,12 +1,17 @@
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
-from fastapi import FastAPI, HTTPException, Query, Response, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg.types.json import Jsonb
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from .database import lifespan_pool, pool
-from .auth import CurrentUser, login_user, register_user, update_alert_preferences, update_user_location
+from .auth import (AccessToken, CurrentUser, delete_account, login_user, register_user,
+                   revoke_access_token, update_alert_preferences, update_user_location)
 from .producer import DuplicateIncidentError, create_incident_with_outbox
 from .community_validation import validate_incident
 from .alerts.dependencies import evaluate_user_proximity
@@ -21,6 +26,7 @@ from .models import (
     LoginInput,
     NotificationOutput,
     RegisterInput,
+    ReporterPublic,
     ReviewInput,
     UserLocationInput,
     UserOutput,
@@ -33,28 +39,76 @@ async def lifespan(_: FastAPI):
         yield
 
 
-app = FastAPI(title="UrbanEye API", version="2.0.0", lifespan=lifespan)
+_is_production = os.getenv("ENV", "development") == "production"
+
+app = FastAPI(
+    title="UrbanEye API", version="2.0.0", lifespan=lifespan,
+    # Em produção a documentação interativa expõe a superfície inteira da API a quem
+    # descobrir a URL; fora dela continua disponível para o time.
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None,
+    openapi_url=None if _is_production else "/openapi.json",
+)
+
+# Argon2id consome ~64 MB de RAM por verificação de senha: sem limite, um punhado de
+# requisições paralelas derruba a API por exaustão de memória antes de qualquer senha
+# ser quebrada. O limite protege contra brute force e contra DoS ao mesmo tempo.
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+_allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrinja para os domínios do app web antes de publicar.
-    allow_methods=["GET", "POST", "PUT"],
-    allow_headers=["*"],
+    allow_origins=_allowed_origins or ["http://localhost:3000"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    if _is_production:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
+
 @app.post("/auth/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def register(data: RegisterInput) -> AuthResponse:
+@limiter.limit("10/hour")
+async def register(request: Request, data: RegisterInput) -> AuthResponse:
     return await register_user(data)
 
 
 @app.post("/auth/login", response_model=AuthResponse)
-async def login(data: LoginInput) -> AuthResponse:
+@limiter.limit("5/minute")
+async def login(request: Request, data: LoginInput) -> AuthResponse:
     return await login_user(data)
 
 
 @app.get("/auth/me", response_model=UserOutput)
 async def me(user: CurrentUser) -> UserOutput:
     return user
+
+
+@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(token: AccessToken) -> Response:
+    await revoke_access_token(token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.delete("/auth/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(user: CurrentUser, token: AccessToken) -> Response:
+    """Direito de eliminação (LGPD art. 18, VI).
+
+    Anonimiza os dados pessoais e encerra a sessão. As ocorrências continuam no mapa
+    como informação pública, sem vínculo identificável com quem denunciou.
+    """
+    await delete_account(user.id, token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.put("/auth/me/location", status_code=status.HTTP_204_NO_CONTENT)
@@ -99,7 +153,9 @@ async def create_incident(incident: IncidentInput, user: CurrentUser) -> Inciden
             detail="Não foi possível persistir o incidente.",
         ) from error
     return IncidentAccepted(
-        **incident.model_dump(), reported_by=user, severity=assessment.severity,
+        **incident.model_dump(),
+        reported_by=ReporterPublic(id=user.id, name=user.name, trust_score=user.trust_score),
+        severity=assessment.severity,
         risk_score=assessment.score, health_impact=assessment.health_impact,
         ecosystem_impact=assessment.ecosystem_impact, community_impact=assessment.community_impact,
     )
@@ -120,7 +176,7 @@ async def list_incidents(
                        i.community_impact, i.workflow_status, i.environmental_context, i.updated_at,
                        i.confidence_score, i.priority_score, i.confirmation_count,
                        i.rejection_count, i.complement_count,
-                       u.id AS user_id, u.name AS user_name, u.email AS user_email,
+                       u.id AS user_id, u.name AS user_name,
                        u.role AS user_role, u.trust_score AS user_trust_score
                 FROM incidents i LEFT JOIN users u ON u.id = i.reported_by
                 WHERE (%s IS NULL OR i.updated_at > %s)
@@ -146,9 +202,9 @@ async def list_incidents(
             updated_at=row["updated_at"], confidence_score=row["confidence_score"],
             priority_score=row["priority_score"], confirmation_count=row["confirmation_count"],
             rejection_count=row["rejection_count"], complement_count=row["complement_count"],
-            reported_by={"id": row["user_id"], "name": row["user_name"], "email": row["user_email"],
-                         "role": row["user_role"], "trustScore": row["user_trust_score"]}
-            if row["user_id"] else None,
+            reported_by=ReporterPublic(
+                id=row["user_id"], name=row["user_name"], trust_score=row["user_trust_score"],
+            ) if row["user_id"] else None,
         )
         for row in rows
     ]

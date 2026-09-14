@@ -1,7 +1,12 @@
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
-from ...identity.presentation.schemas import UserOutput
+
+class ReporterPublic(BaseModel):
+    """Autor visível no feed: sem e-mail, que exporia o denunciante a retaliação."""
+    id: UUID
+    name: str
+    trust_score: float = Field(default=50, serialization_alias="trustScore")
 
 class IncidentInput(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -16,7 +21,7 @@ class IncidentInput(BaseModel):
 
 class IncidentOutput(IncidentInput):
     idempotency_key: str | None = Field(default=None, serialization_alias="idempotencyKey")
-    reported_by: UserOutput | None = Field(default=None, serialization_alias="reportedBy")
+    reported_by: ReporterPublic | None = Field(default=None, serialization_alias="reportedBy")
     severity: str = "moderado"
     risk_score: float = Field(default=50, serialization_alias="riskScore")
     health_impact: str | None = Field(default=None, serialization_alias="healthImpact")

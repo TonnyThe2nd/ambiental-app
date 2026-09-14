@@ -6,12 +6,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .identity.application.services import AuthenticationService, UserProfileService
 from .identity.domain.entities import User
-from .identity.infrastructure import JwtTokenService, PostgresUserRepository
+from .identity.infrastructure import (JwtTokenService, PostgresRevokedTokenRepository,
+                                     PostgresUserRepository)
 from .models import AlertPreferencesInput, AuthResponse, LoginInput, RegisterInput, UserLocationInput, UserOutput
 from .shared.domain.exceptions import ConflictError, EntityNotFound
 
 _repository = PostgresUserRepository()
-_authentication = AuthenticationService(_repository, JwtTokenService())
+_revoked_tokens = PostgresRevokedTokenRepository()
+_authentication = AuthenticationService(_repository, JwtTokenService(), _revoked_tokens)
 _profiles = UserProfileService(_repository)
 bearer = HTTPBearer(auto_error=False)
 
@@ -51,15 +53,35 @@ async def update_alert_preferences(user_id, data: AlertPreferencesInput) -> None
     await _profiles.update_alert_preferences(user_id, **values)
 
 
-async def get_current_user(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> UserOutput:
-    unauthorized = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+async def revoke_access_token(token: str) -> None:
+    await _authentication.revoke(token)
+
+
+async def delete_account(user_id, token: str) -> bool:
+    removed = await _profiles.delete_account(user_id)
+    await _authentication.revoke(token)
+    return removed
+
+
+def _unauthorized() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Autenticação necessária.", headers={"WWW-Authenticate": "Bearer"})
+
+
+async def get_access_token(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> str:
     if credentials is None or credentials.scheme.lower() != "bearer":
-        raise unauthorized
+        raise _unauthorized()
+    return credentials.credentials
+
+
+async def get_current_user(token: Annotated[str, Depends(get_access_token)]) -> UserOutput:
     try:
-        return _output(await _authentication.authenticate(credentials.credentials))
+        return _output(await _authentication.authenticate(token))
     except Exception as error:
-        raise unauthorized from error
+        raise _unauthorized() from error
 
 
+AccessToken = Annotated[str, Depends(get_access_token)]
 CurrentUser = Annotated[UserOutput, Depends(get_current_user)]
