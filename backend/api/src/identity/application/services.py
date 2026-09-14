@@ -38,8 +38,6 @@ class AuthenticationService:
         return self._tokens.create(credentials[0].id), credentials[0]
 
     def _verify(self, password: str, stored_hash: str) -> bool:
-        # Contas anonimizadas guardam um marcador no lugar do hash; o custo constante do
-        # dummy mantém a proteção contra timing attack mesmo nesse caso.
         try:
             return self._passwords.verify(password, stored_hash)
         except Exception:
@@ -57,7 +55,6 @@ class AuthenticationService:
         return user
 
     async def revoke(self, token: str) -> None:
-        """Invalida a sessão no servidor — sem isso o logout só apaga o token do aparelho."""
         if self._revoked_tokens is None:
             return
         user_id, jti, expires_at = self._tokens.identity(token)

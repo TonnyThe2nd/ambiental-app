@@ -3,7 +3,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 class ReporterPublic(BaseModel):
-    """Autor visível no feed: sem e-mail, que exporia o denunciante a retaliação."""
     id: UUID
     name: str
     trust_score: float = Field(default=50, serialization_alias="trustScore")

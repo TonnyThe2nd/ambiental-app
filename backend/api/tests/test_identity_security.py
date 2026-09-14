@@ -45,7 +45,6 @@ class FakeRevokedTokenRepository:
 
 
 def test_reporter_public_nao_expoe_email():
-    """O feed de ocorrências não pode identificar o denunciante pelo e-mail."""
     assert "email" not in ReporterPublic.model_fields
     payload = ReporterPublic(id=uuid4(), name="Denunciante").model_dump(by_alias=True)
     assert set(payload) == {"id", "name", "trustScore"}
@@ -82,7 +81,6 @@ def test_conta_removida_deixa_de_autenticar():
 
 
 def test_cadastro_sem_localizacao():
-    """Negar o GPS não pode impedir a criação da conta."""
     repository = FakeUserRepository(None)
     service = AuthenticationService(repository, JwtTokenService(), FakeRevokedTokenRepository())
     asyncio.run(service.register(name="Sem GPS", email="Sem.GPS@Example.com ", password="senha-forte"))

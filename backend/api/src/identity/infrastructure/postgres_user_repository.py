@@ -16,8 +16,6 @@ class PostgresUserRepository:
     async def create(self, *, name: str, email: str, password_hash: str,
                      latitude: float | None = None, longitude: float | None = None) -> User:
         user_id = uuid4()
-        # Sem coordenadas a conta nasce sem localização: o app pede o GPS no primeiro
-        # uso do mapa, com consentimento informado, em vez de barrar o cadastro.
         has_location = latitude is not None and longitude is not None
         try:
             async with pool.connection() as connection:
@@ -82,12 +80,6 @@ class PostgresUserRepository:
             await connection.commit()
 
     async def anonymize(self, user_id: UUID) -> bool:
-        """Apaga quem denunciou e preserva as ocorrências, que são valor público.
-
-        Atende ao direito de eliminação (LGPD art. 18, VI): e-mail, nome, senha,
-        localização, token de push e rota saem do banco; o registro sobrevive apenas
-        como chave estrangeira anônima das ocorrências já publicadas.
-        """
         async with pool.connection() as connection:
             async with connection.transaction():
                 result = await connection.execute(

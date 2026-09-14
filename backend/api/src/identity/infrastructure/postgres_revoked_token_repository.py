@@ -5,8 +5,6 @@ from ...shared.infrastructure.database import pool
 
 
 class PostgresRevokedTokenRepository:
-    """Lista de negação de tokens: dá ao logout efeito no servidor, não só no aparelho."""
-
     async def revoke(self, *, jti: UUID, user_id: UUID, expires_at: datetime) -> None:
         async with pool.connection() as connection:
             await connection.execute(
@@ -14,8 +12,6 @@ class PostgresRevokedTokenRepository:
                    VALUES (%s, %s, %s) ON CONFLICT (jti) DO NOTHING""",
                 (jti, user_id, expires_at),
             )
-            # Mantém a tabela do tamanho das sessões vivas: token expirado já é recusado
-            # pela própria validação da assinatura.
             await connection.execute("DELETE FROM revoked_tokens WHERE expires_at < NOW()")
             await connection.commit()
 
