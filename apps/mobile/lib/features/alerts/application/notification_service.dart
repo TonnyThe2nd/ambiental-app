@@ -114,6 +114,10 @@ class NotificationService extends ChangeNotifier {
           'fcmToken': ?token,
         }),
       );
+      if (response.statusCode == 401) {
+        await _auth.handleUnauthorized();
+        return;
+      }
       if (response.statusCode >= 200 && response.statusCode < 300) {
         _lastSentLocation = position;
         unawaited(_poll());
@@ -167,6 +171,10 @@ class NotificationService extends ChangeNotifier {
       _baseUri.resolve('/notifications/$id/read'),
       headers: _auth.authorizedHeaders(),
     );
+    if (response.statusCode == 401) {
+      await _auth.handleUnauthorized();
+      return;
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) return;
     final index = _notifications.indexWhere((item) => item.id == id);
     if (index < 0) return;
@@ -188,6 +196,12 @@ class NotificationService extends ChangeNotifier {
         _baseUri.resolve('/notifications?unread_only=false'),
         headers: _auth.authorizedHeaders(),
       );
+      // O polling roda a cada 20 s: sem tratar o 401 ele bate para sempre num token
+      // morto, sem nunca levar a pessoa de volta para a tela de login.
+      if (response.statusCode == 401) {
+        await _auth.handleUnauthorized();
+        return;
+      }
       if (response.statusCode < 200 || response.statusCode >= 300) return;
       final body = jsonDecode(response.body) as List<dynamic>;
       final items = body

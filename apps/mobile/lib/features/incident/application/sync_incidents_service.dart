@@ -36,6 +36,11 @@ class SyncIncidentsService {
         synced++;
       } catch (error) {
         await _repository.markFailed(incident, error);
+        if (error is AuthException) {
+          // Sessão expirada: reagendar não adianta e a fila inteira falharia igual.
+          // O app já voltou para a tela de login; o envio recomeça depois de entrar.
+          break;
+        }
         await BackgroundSync.schedule(attempts: incident.attempts + 1);
       }
     }
