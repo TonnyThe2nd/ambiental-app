@@ -63,7 +63,9 @@ class PostgresUserRepository:
                 fcm_token=COALESCE(%s,fcm_token), location_updated_at=NOW(),
                 alert_route=CASE WHEN %s::jsonb IS NULL THEN alert_route WHEN jsonb_array_length(%s::jsonb)>=2 THEN
                   (SELECT ST_MakeLine(ST_SetSRID(ST_MakePoint(p.longitude,p.latitude),4326) ORDER BY p.ordinality)::geography
-                   FROM jsonb_to_recordset(%s::jsonb) WITH ORDINALITY AS p(latitude float8,longitude float8,ordinality bigint)) ELSE NULL END,
+                   FROM ROWS FROM (
+                     jsonb_to_recordset(%s::jsonb) AS (latitude float8, longitude float8)
+                   ) WITH ORDINALITY AS p(latitude, longitude, ordinality)) ELSE NULL END,
                 alert_route_expires_at=CASE WHEN %s::jsonb IS NULL THEN alert_route_expires_at WHEN jsonb_array_length(%s::jsonb)>=2
                   THEN NOW()+(%s*INTERVAL '1 minute') ELSE NULL END, route_alert_radius_m=%s WHERE id=%s""",
                 (v["latitude"],v["longitude"],v["longitude"],v["latitude"],v.get("fcm_token"),
