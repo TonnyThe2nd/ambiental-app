@@ -123,7 +123,7 @@ async def list_incidents(
                        u.id AS user_id, u.name AS user_name, u.email AS user_email,
                        u.role AS user_role, u.trust_score AS user_trust_score
                 FROM incidents i LEFT JOIN users u ON u.id = i.reported_by
-                WHERE (%s IS NULL OR i.updated_at > %s)
+                WHERE (%s::timestamptz IS NULL OR i.updated_at > %s::timestamptz)
                   AND (cardinality(%s::text[]) = 0 OR i.category = ANY(%s::text[]))
                   AND (cardinality(%s::text[]) = 0 OR i.severity::text = ANY(%s::text[]))
                   AND (%s = FALSE OR i.workflow_status NOT IN ('rejeitado', 'resolvido'))
