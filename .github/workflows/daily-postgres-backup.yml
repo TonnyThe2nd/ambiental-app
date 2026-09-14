@@ -5,6 +5,11 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
 
+# O dump traz o banco inteiro — hashes de senha, e-mails e a posição de cada cidadão.
+# Ele é cifrado com AES-256 antes de sair do runner: o bucket nunca recebe texto claro.
+# Secrets necessários: DATABASE_URL, BACKUP_ENCRYPTION_PASSPHRASE, SUPABASE_URL,
+# SUPABASE_SERVICE_ROLE_KEY. A passphrase fica em secret separado do acesso ao bucket,
+# para que vazar um não entregue o outro.
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -18,16 +23,60 @@ jobs:
         run: |
           set -euo pipefail
           pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" > "urbaneye-$(date -u +%F).dump"
+      - name: Encrypt dump
+        env:
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_ENCRYPTION_PASSPHRASE:-}" ]; then
+            echo "BACKUP_ENCRYPTION_PASSPHRASE não configurado: backup abortado." >&2
+            exit 1
+          fi
+          file="$(find . -maxdepth 1 -name 'urbaneye-*.dump' -print -quit)"
+          # --batch/--passphrase-fd 0 mantêm a passphrase fora da linha de comando,
+          # que é visível para outros processos do runner.
+          printf '%s' "$BACKUP_ENCRYPTION_PASSPHRASE" | gpg --batch --yes \
+            --symmetric --cipher-algo AES256 --passphrase-fd 0 \
+            --output "$file.gpg" "$file"
+          rm -f "$file"
       - name: Upload to Supabase Storage
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          file="$(find . -maxdepth 1 -name 'urbaneye-*.dump' -print -quit)"
+          file="$(find . -maxdepth 1 -name 'urbaneye-*.dump.gpg' -print -quit)"
           curl --fail-with-body --retry 3 --request POST \
             --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             --header "Content-Type: application/octet-stream" \
             --upload-file "$file" \
             "$SUPABASE_URL/storage/v1/object/backups/$(basename "$file")"
+      # Retenção: apaga do bucket os backups com mais de BACKUP_RETENTION_DAYS dias.
+      # Guardar cópias indefinidamente amplia a janela de exposição de dados pessoais
+      # e contraria a limitação de conservação da LGPD (art. 15, I).
+      - name: Apply retention policy
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_RETENTION_DAYS: ${{ vars.BACKUP_RETENTION_DAYS || 30 }}
+        run: |
+          set -euo pipefail
+          cutoff="$(date -u -d "$BACKUP_RETENTION_DAYS days ago" +%F)"
+          listing="$(curl --fail-with-body --silent --request POST \
+            --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            --header "Content-Type: application/json" \
+            --data '{"prefix":"","limit":1000,"sortBy":{"column":"name","order":"asc"}}' \
+            "$SUPABASE_URL/storage/v1/object/list/backups")"
+          expired="$(printf '%s' "$listing" \
+            | jq -r --arg cutoff "$cutoff" \
+              '.[].name | select(test("^urbaneye-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.dump\\.gpg$"))
+               | select((. | capture("urbaneye-(?<date>[0-9-]+)\\.dump").date) < $cutoff)')"
+          for name in $expired; do
+            echo "Removendo backup expirado: $name"
+            curl --fail-with-body --silent --request DELETE \
+              --header "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              --header "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              "$SUPABASE_URL/storage/v1/object/backups/$name" > /dev/null
+          done

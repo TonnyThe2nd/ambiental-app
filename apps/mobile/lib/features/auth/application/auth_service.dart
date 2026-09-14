@@ -40,7 +40,7 @@ class AuthService extends ChangeNotifier {
       try {
         _user = AuthUser.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
       } catch (_) {
-        await logout();
+        await _clearSession();
       }
     }
     notifyListeners();
@@ -52,18 +52,22 @@ class AuthService extends ChangeNotifier {
         'password': password,
       });
 
+  /// [latitude]/[longitude] são opcionais: negar o GPS não pode impedir o cadastro.
+  /// A localização é pedida depois, no primeiro uso do mapa.
   Future<void> register({
     required String name,
     required String email,
     required String password,
-    required double latitude,
-    required double longitude,
+    double? latitude,
+    double? longitude,
   }) => _authenticate('/auth/register', {
     'name': name.trim(),
     'email': email.trim(),
     'password': password,
-    'latitude': latitude,
-    'longitude': longitude,
+    if (latitude != null && longitude != null) ...{
+      'latitude': latitude,
+      'longitude': longitude,
+    },
   });
 
   Future<void> updateLocation({
@@ -75,9 +79,34 @@ class AuthService extends ChangeNotifier {
       headers: authorizedHeaders(json: true),
       body: jsonEncode({'latitude': latitude, 'longitude': longitude}),
     );
+    if (response.statusCode == 401) {
+      await handleUnauthorized();
+      throw const AuthException(sessionExpiredMessage);
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw const AuthException('Não foi possível atualizar sua localização.');
     }
+  }
+
+  /// Encerra a sessão local quando o servidor recusa o token.
+  ///
+  /// Sem isso o app continua tentando usar um token expirado indefinidamente, sem
+  /// nunca pedir login de novo.
+  Future<void> handleUnauthorized() async {
+    if (_token == null) return;
+    await _clearSession();
+  }
+
+  /// Apaga a conta (LGPD art. 18, VI) e encerra a sessão.
+  Future<void> deleteAccount() async {
+    final response = await _client.delete(
+      _baseUri.resolve('/auth/me'),
+      headers: authorizedHeaders(),
+    );
+    if (response.statusCode != 204 && response.statusCode != 401) {
+      throw const AuthException('Não foi possível excluir sua conta agora.');
+    }
+    await _clearSession();
   }
 
   Future<void> _authenticate(String path, Map<String, dynamic> body) async {
@@ -111,6 +140,25 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    final token = _token;
+    if (token != null) {
+      // Revoga o token no servidor: apagar só a credencial do aparelho deixaria a
+      // sessão válida até expirar.
+      try {
+        await _client
+            .post(
+              _baseUri.resolve('/auth/logout'),
+              headers: {'Authorization': 'Bearer $token'},
+            )
+            .timeout(const Duration(seconds: 10));
+      } catch (_) {
+        // Sem rede o token expira sozinho; a sessão local sai de qualquer forma.
+      }
+    }
+    await _clearSession();
+  }
+
+  Future<void> _clearSession() async {
     _token = null;
     _user = null;
     await _storage.delete(key: _tokenKey);
@@ -118,6 +166,8 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+const sessionExpiredMessage = 'Sessão expirada. Entre novamente.';
 
 class AuthException implements Exception {
   const AuthException(this.message);

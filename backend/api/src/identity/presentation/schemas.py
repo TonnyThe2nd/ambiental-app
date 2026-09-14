@@ -12,8 +12,10 @@ class RegisterInput(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    latitude: float = Field(ge=-90, le=90)
-    longitude: float = Field(ge=-180, le=180)
+    # Opcionais: exigir GPS exato antes de qualquer consentimento informado não se
+    # sustenta como base legal (LGPD). A localização é pedida no primeiro uso do mapa.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
 class LoginInput(BaseModel):
     email: EmailStr

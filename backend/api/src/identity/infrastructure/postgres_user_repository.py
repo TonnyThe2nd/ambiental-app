@@ -14,15 +14,20 @@ def _user(row) -> User:
 
 class PostgresUserRepository:
     async def create(self, *, name: str, email: str, password_hash: str,
-                     latitude: float, longitude: float) -> User:
+                     latitude: float | None = None, longitude: float | None = None) -> User:
         user_id = uuid4()
+        # Sem coordenadas a conta nasce sem localização: o app pede o GPS no primeiro
+        # uso do mapa, com consentimento informado, em vez de barrar o cadastro.
+        has_location = latitude is not None and longitude is not None
         try:
             async with pool.connection() as connection:
                 await connection.execute(
                     """INSERT INTO users (id, name, email, password_hash, latitude, longitude, location, location_updated_at)
                        VALUES (%s, %s, %s, %s, %s, %s,
-                       ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, NOW())""",
-                    (user_id, name, email, password_hash, latitude, longitude, longitude, latitude),
+                       ST_SetSRID(ST_MakePoint(%s::float8, %s::float8), 4326)::geography,
+                       CASE WHEN %s THEN NOW() END)""",
+                    (user_id, name, email, password_hash, latitude, longitude,
+                     longitude, latitude, has_location),
                 )
                 await connection.commit()
         except UniqueViolation as error:
@@ -32,7 +37,8 @@ class PostgresUserRepository:
     async def find_credentials_by_email(self, email: str):
         async with pool.connection() as connection:
             result = await connection.execute(
-                "SELECT id, name, email, password_hash, role, trust_score FROM users WHERE email = %s", (email,)
+                """SELECT id, name, email, password_hash, role, trust_score FROM users
+                   WHERE email = %s AND deleted_at IS NULL""", (email,)
             )
             row = await result.fetchone()
         return (_user(row), row["password_hash"]) if row else None
@@ -40,7 +46,8 @@ class PostgresUserRepository:
     async def find_by_id(self, user_id: UUID):
         async with pool.connection() as connection:
             result = await connection.execute(
-                "SELECT id, name, email, role, trust_score FROM users WHERE id = %s", (user_id,)
+                """SELECT id, name, email, role, trust_score FROM users
+                   WHERE id = %s AND deleted_at IS NULL""", (user_id,)
             )
             row = await result.fetchone()
         return _user(row) if row else None
@@ -73,3 +80,30 @@ class PostgresUserRepository:
                  v.get("quiet_hours_start"),v.get("quiet_hours_end"),user_id),
             )
             await connection.commit()
+
+    async def anonymize(self, user_id: UUID) -> bool:
+        """Apaga quem denunciou e preserva as ocorrências, que são valor público.
+
+        Atende ao direito de eliminação (LGPD art. 18, VI): e-mail, nome, senha,
+        localização, token de push e rota saem do banco; o registro sobrevive apenas
+        como chave estrangeira anônima das ocorrências já publicadas.
+        """
+        async with pool.connection() as connection:
+            async with connection.transaction():
+                result = await connection.execute(
+                    """UPDATE users SET
+                         name = 'Conta removida',
+                         email = 'anonimizado+' || id::text || '@urbaneye.invalid',
+                         password_hash = '!conta-removida',
+                         latitude = NULL, longitude = NULL, location = NULL,
+                         location_updated_at = NULL, fcm_token = NULL,
+                         alert_route = NULL, alert_route_expires_at = NULL,
+                         alert_categories = '{}', deleted_at = NOW()
+                       WHERE id = %s AND deleted_at IS NULL
+                       RETURNING id""",
+                    (user_id,),
+                )
+                if await result.fetchone() is None:
+                    return False
+                await connection.execute("DELETE FROM notifications WHERE user_id = %s", (user_id,))
+        return True

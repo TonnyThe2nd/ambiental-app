@@ -11,6 +11,39 @@ class AccountPage extends StatelessWidget {
   });
   final AuthService auth;
   final NotificationService notifications;
+
+  Future<void> _confirmDeletion(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir minha conta'),
+        content: const Text(
+          'Seus dados pessoais — nome, e-mail, senha e localização — são apagados '
+          'em definitivo e você sai do aplicativo.\n\n'
+          'As ocorrências que você registrou continuam no mapa como informação '
+          'pública, sem ligação com você.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await auth.deleteAccount();
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = auth.currentUser!;
@@ -78,6 +111,17 @@ class AccountPage extends StatelessWidget {
               onPressed: auth.logout,
               icon: const Icon(Icons.logout),
               label: const Text('Sair da conta'),
+            ),
+            const SizedBox(height: 12),
+            // Direito de eliminação (LGPD art. 18, VI): precisa estar ao alcance de
+            // quem usa o app, não só como endpoint da API.
+            TextButton.icon(
+              onPressed: () => _confirmDeletion(context),
+              icon: const Icon(Icons.delete_outline, color: Color(0xFFB3261E)),
+              label: const Text(
+                'Excluir minha conta',
+                style: TextStyle(color: Color(0xFFB3261E)),
+              ),
             ),
           ],
         ),

@@ -12,3 +12,13 @@ __pycache__/
 build/
 .idea/
 .vscode/
+
+# Logs de ferramentas (podem conter e-mail, usuário e caminhos da máquina)
+firebase-debug.log
+*-debug.log
+.firebase/
+
+# Chaves de assinatura Android
+apps/mobile/android/key.properties
+*.jks
+*.keystore
