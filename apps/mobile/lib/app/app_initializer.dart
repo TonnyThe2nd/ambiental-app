@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -36,6 +37,7 @@ class AppInitializer {
     bool registerBackground = true,
   }) async {
     WidgetsFlutterBinding.ensureInitialized();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await Hive.initFlutter();
     final local = HiveIncidentLocalDataSource(
       await Hive.openBox<Map<dynamic, dynamic>>('incidents'),

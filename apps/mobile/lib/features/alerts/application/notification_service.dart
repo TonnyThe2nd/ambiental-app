@@ -10,6 +10,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
 
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
 class AppNotification {
   const AppNotification({
     required this.id,
