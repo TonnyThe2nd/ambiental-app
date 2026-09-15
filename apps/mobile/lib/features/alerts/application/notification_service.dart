@@ -10,6 +10,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
 
+/// Periodic requests are only a fallback when a push cannot be delivered.
+const notificationFallbackPollingInterval = Duration(minutes: 5);
+const locationFallbackPollingInterval = Duration(minutes: 5);
+
 class AppNotification {
   const AppNotification({
     required this.id,
@@ -63,6 +67,7 @@ class NotificationService extends ChangeNotifier {
   StreamSubscription<String>? _tokenRefresh;
   Location? _lastSentLocation;
   AppNotification? _latestUnread;
+  bool _pollInProgress = false;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   int get unreadCount =>
@@ -142,10 +147,10 @@ class NotificationService extends ChangeNotifier {
   void start() {
     if (!_auth.isAuthenticated || _timer != null) return;
     _poll();
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
+    _timer = Timer.periodic(notificationFallbackPollingInterval, (_) => _poll());
     unawaited(_sendPosition(force: true));
     _locationTimer = Timer.periodic(
-      const Duration(minutes: 2),
+      locationFallbackPollingInterval,
       (_) => _sendPosition(),
     );
   }
@@ -190,14 +195,15 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<void> _poll({bool announceNew = true}) async {
-    if (!_auth.isAuthenticated) return;
+    if (!_auth.isAuthenticated || _pollInProgress) return;
+    _pollInProgress = true;
     try {
       final response = await _client.get(
         _baseUri.resolve('/notifications?unread_only=false'),
         headers: _auth.authorizedHeaders(),
       );
-      // O polling roda a cada 20 s: sem tratar o 401 ele bate para sempre num token
-      // morto, sem nunca levar a pessoa de volta para a tela de login.
+      // A resposta 401 encerra a sessao em vez de manter o fallback consultando
+      // a API com um token que ja nao e valido.
       if (response.statusCode == 401) {
         await _auth.handleUnauthorized();
         return;
@@ -216,7 +222,11 @@ class NotificationService extends ChangeNotifier {
       _seenIds.addAll(items.map((item) => item.id));
       _latestUnread = announceNew && fresh.isNotEmpty ? fresh.first : null;
       notifyListeners();
-    } catch (_) {}
+    } catch (_) {
+      // A proxima verificacao de fallback ou uma mensagem FCM tentara novamente.
+    } finally {
+      _pollInProgress = false;
+    }
   }
 
   void _handleAuthChange() {
