@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../application/auth_service.dart';
 import '../../../alerts/application/notification_service.dart';
@@ -107,6 +108,8 @@ class AccountPage extends StatelessWidget {
             const SizedBox(height: 20),
             _NotificationsSection(notifications: notifications),
             const SizedBox(height: 20),
+            const _AppVersionCard(),
+            const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: auth.logout,
               icon: const Icon(Icons.logout),
@@ -128,6 +131,38 @@ class AccountPage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AppVersionCard extends StatefulWidget {
+  const _AppVersionCard();
+
+  @override
+  State<_AppVersionCard> createState() => _AppVersionCardState();
+}
+
+class _AppVersionCardState extends State<_AppVersionCard> {
+  late final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: FutureBuilder<PackageInfo>(
+      future: _packageInfo,
+      builder: (context, snapshot) => ListTile(
+        leading: Icon(
+          Icons.info_outline,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: const Text('Sobre o UrbanEye'),
+        subtitle: Text(
+          snapshot.hasData
+              ? 'Versão ${snapshot.data!.version} (${snapshot.data!.buildNumber})'
+              : snapshot.hasError
+              ? 'Versão indisponível'
+              : 'Consultando versão…',
+        ),
+      ),
+    ),
+  );
 }
 
 class _NotificationsSection extends StatelessWidget {
