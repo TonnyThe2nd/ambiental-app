@@ -43,16 +43,11 @@ _is_production = os.getenv("ENV", "development") == "production"
 
 app = FastAPI(
     title="UrbanEye API", version="2.0.0", lifespan=lifespan,
-    # Em produção a documentação interativa expõe a superfície inteira da API a quem
-    # descobrir a URL; fora dela continua disponível para o time.
     docs_url=None if _is_production else "/docs",
     redoc_url=None,
     openapi_url=None if _is_production else "/openapi.json",
 )
 
-# Argon2id consome ~64 MB de RAM por verificação de senha: sem limite, um punhado de
-# requisições paralelas derruba a API por exaustão de memória antes de qualquer senha
-# ser quebrada. O limite protege contra brute force e contra DoS ao mesmo tempo.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
