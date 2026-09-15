@@ -28,8 +28,9 @@ class PostgresProximityAlertRepository:
                                <= CASE i.severity WHEN 'leve' THEN 1 WHEN 'moderado' THEN 2 ELSE 3 END
                            AND (i.severity = 'critico' OR u.quiet_hours_start IS NULL OR u.quiet_hours_end IS NULL OR
                              CASE WHEN u.quiet_hours_start < u.quiet_hours_end
-                               THEN LOCALTIME NOT BETWEEN u.quiet_hours_start AND u.quiet_hours_end
-                               ELSE LOCALTIME > u.quiet_hours_end AND LOCALTIME < u.quiet_hours_start END)
+                               THEN (NOW() AT TIME ZONE u.timezone)::time NOT BETWEEN u.quiet_hours_start AND u.quiet_hours_end
+                               ELSE (NOW() AT TIME ZONE u.timezone)::time > u.quiet_hours_end
+                                    AND (NOW() AT TIME ZONE u.timezone)::time < u.quiet_hours_start END)
                        ), inserted AS (
                          INSERT INTO notifications
                            (id,user_id,incident_id,title,message,distance_km,severity,reason,risk_score)

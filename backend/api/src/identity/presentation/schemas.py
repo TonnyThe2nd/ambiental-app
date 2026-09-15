@@ -1,6 +1,8 @@
 from enum import StrEnum
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import field_validator
 
 class Severity(StrEnum):
     LEVE = "leve"
@@ -41,6 +43,16 @@ class AlertPreferencesInput(BaseModel):
     cooldown_minutes: int = Field(default=60, ge=5, le=1440, validation_alias="cooldownMinutes")
     quiet_hours_start: str | None = Field(default=None, validation_alias="quietHoursStart", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     quiet_hours_end: str | None = Field(default=None, validation_alias="quietHoursEnd", pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    timezone: str = Field(default="America/Sao_Paulo", max_length=64)
+
+    @field_validator("timezone")
+    @classmethod
+    def timezone_must_be_an_iana_name(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as error:
+            raise ValueError("timezone deve ser um fuso IANA válido, como America/Sao_Paulo") from error
+        return value
 
 class UserLocationInput(BaseModel):
     latitude: float = Field(ge=-90, le=90)
