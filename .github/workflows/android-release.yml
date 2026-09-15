@@ -3,70 +3,128 @@ name: Android Release
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build and publish APK
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
     defaults:
       run:
         working-directory: apps/mobile
-
     steps:
-      - name: Baixar código
-        uses: actions/checkout@v4
-
-      - name: Configurar Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
-
-      - name: Configurar Flutter
-        uses: subosito/flutter-action@v2
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.47.4"
+          flutter-version: '3.47.4'
           channel: stable
           cache: true
-
-      - name: Restaurar keystore
-        working-directory: apps/mobile
+      - name: Ler versão do pubspec
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          match = re.search(r'^version:\s*[\'"]?(\d+\.\d+\.\d+)\+(\d+)[\'"]?\s*$', Path('pubspec.yaml').read_text(), re.M)
+          if not match:
+              raise SystemExit('Use version: x.y.z+versionCode no pubspec.yaml')
+          version, code = match.groups()
+          if os.environ['RELEASE_TAG'] != f'v{version}' or int(code) < 1:
+              raise SystemExit('A tag deve corresponder à versão do pubspec; incremente também versionCode.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\ncode={code}\n')
+          PY
+      - name: Restaurar assinatura
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/urbaneye-release.jks
-
-      - name: Criar key.properties
-        working-directory: apps/mobile
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          for key in ('KEYSTORE_BASE64', 'KEYSTORE_PASSWORD', 'KEY_PASSWORD', 'KEY_ALIAS'):
+              if not os.environ.get(key):
+                  raise SystemExit(f'Secret obrigatório ausente: {key}')
+          Path('android/urbaneye-release.jks').write_bytes(base64.b64decode(os.environ['KEYSTORE_BASE64'], validate=True))
+          def escape(value):
+              return ''.join('\\u%04x' % ord(c) for c in value)
+          Path('android/key.properties').write_text(
+              'storeFile=urbaneye-release.jks\n' + '\n'.join(
+                  f'{prop}={escape(os.environ[secret])}' for prop, secret in (
+                      ('storePassword', 'KEYSTORE_PASSWORD'), ('keyPassword', 'KEY_PASSWORD'), ('keyAlias', 'KEY_ALIAS'))))
+          PY
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test test/app_update_service_test.dart
+      - name: Gerar APK assinado
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://ambiental-app.onrender.com
+      - name: Preparar APK e manifesto
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_CODE: ${{ steps.version.outputs.code }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          cat > android/key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=urbaneye-release.jks
-          EOF
-
-      - name: Instalar dependências
-        run: flutter pub get
-
-      - name: Gerar APK
-        run: |
-          flutter build apk \
-            --release \
-            --dart-define=API_BASE_URL=https://ambiental-app.onrender.com
-
-      - name: Renomear APK
-        run: |
-          cp build/app/outputs/flutter-apk/app-release.apk \
-            urbaneye-${{ github.ref_name }}.apk
-
+          python3 - <<'PY'
+          import hashlib, json, os, shutil
+          from pathlib import Path
+          name = f"urbaneye-{os.environ['RELEASE_TAG']}.apk"
+          shutil.copyfile('build/app/outputs/flutter-apk/app-release.apk', name)
+          manifest = dict(version=os.environ['RELEASE_VERSION'], versionCode=int(os.environ['RELEASE_CODE']),
+              apkUrl=f"https://github.com/{os.environ['REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/{name}",
+              sha256=hashlib.file_digest(open(name, 'rb'), 'sha256').hexdigest(),
+              mandatory=json.loads(Path('../../update/latest.json').read_text())['mandatory'])
+          Path(os.environ['RUNNER_TEMP'], 'latest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          PY
       - name: Publicar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: apps/mobile/urbaneye-${{ github.ref_name }}.apk
+          fail_on_unmatched_files: true
           generate_release_notes: true
+      - name: Atualizar manifesto na master
+        working-directory: .
+        run: |
+          git fetch origin master
+          git checkout -B update-manifest origin/master
+          python3 - <<'PY'
+          import json, os, shutil
+          from pathlib import Path
+          candidate = Path(os.environ['RUNNER_TEMP'], 'latest.json')
+          target = Path('update/latest.json')
+          new = json.loads(candidate.read_text())
+          old = json.loads(target.read_text()) if target.exists() else {'versionCode': 0}
+          if new['versionCode'] > old['versionCode']:
+              target.parent.mkdir(exist_ok=True)
+              shutil.copyfile(candidate, target)
+          elif new != old:
+              raise SystemExit('versionCode deve aumentar; manifesto mais recente preservado.')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add update/latest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: atualizar manifesto Android [skip ci]'
+          for attempt in 1 2 3; do
+            if git push origin HEAD:master; then exit 0; fi
+            git fetch origin master
+            git rebase origin/master || { git rebase --abort; exit 1; }
+          done
+          exit 1
+      - name: Remover assinatura temporária
+        if: always()
+        run: rm -f android/key.properties android/urbaneye-release.jks

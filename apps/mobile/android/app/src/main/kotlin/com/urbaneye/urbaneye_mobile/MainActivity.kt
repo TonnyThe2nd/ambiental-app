@@ -3,6 +3,13 @@ package com.urbaneye.urbaneye_mobile
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import android.content.ClipData
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.core.app.NotificationCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -14,6 +21,41 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "urbaneye/app_updates")
+            .setMethodCallHandler { call, result ->
+                try {
+                    val directory = File(cacheDir, "updates").apply { mkdirs() }.canonicalFile
+                    when (call.method) {
+                        "cacheDirectory" -> result.success(directory.path)
+                        "install" -> {
+                            val path = call.argument<String>("path")
+                                ?: throw IllegalArgumentException("APK ausente")
+                            val file = File(path).canonicalFile
+                            require(file.parentFile == directory && file.name == "update.apk" && file.isFile) {
+                                "APK fora do cache privado"
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                                !packageManager.canRequestPackageInstalls()) {
+                                startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                    Uri.parse("package:$packageName")))
+                                result.error("permission_required", "Autorize esta fonte e tente novamente.", null)
+                            } else {
+                                val uri = FileProvider.getUriForFile(this, "$packageName.updates", file)
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, "application/vnd.android.package-archive")
+                                    clipData = ClipData.newRawUri("APK", uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                startActivity(intent)
+                                result.success(null)
+                            }
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (error: Exception) {
+                    result.error("installer_unavailable", error.message, null)
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, methodChannel)
             .setMethodCallHandler { call, result ->
                 if (call.method != "show") {

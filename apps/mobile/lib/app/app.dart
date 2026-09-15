@@ -6,6 +6,7 @@ import '../features/auth/presentation/pages/auth_page.dart';
 import '../features/map/presentation/pages/map_page.dart';
 import '../features/weather/presentation/pages/weather_page.dart';
 import 'app_initializer.dart';
+import '../features/updates/presentation/update_gate.dart';
 
 class UrbanEyeApp extends StatelessWidget {
   const UrbanEyeApp({super.key, required this.dependencies});
@@ -80,14 +81,16 @@ class UrbanEyeApp extends StatelessWidget {
           ),
         ),
       ),
-      home: AnimatedBuilder(
-        animation: dependencies.auth,
-        builder: (context, _) => dependencies.auth.isAuthenticated
-            ? _Home(dependencies: dependencies)
-            : AuthPage(
-                auth: dependencies.auth,
-                locationService: dependencies.location,
-              ),
+      home: UpdateGate(
+        child: AnimatedBuilder(
+          animation: dependencies.auth,
+          builder: (context, _) => dependencies.auth.isAuthenticated
+              ? _Home(dependencies: dependencies)
+              : AuthPage(
+                  auth: dependencies.auth,
+                  locationService: dependencies.location,
+                ),
+        ),
       ),
     );
   }
