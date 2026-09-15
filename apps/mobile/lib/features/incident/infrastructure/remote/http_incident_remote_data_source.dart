@@ -56,25 +56,46 @@ class HttpIncidentRemoteDataSource {
   Stream<List<Incident>> watch() async* {
     final cache = <String, Incident>{};
     DateTime? cursor;
+    String? cursorId;
     final initial = await getAll();
     for (final item in initial) { cache[item.id] = item; }
     cursor = initial.map((item) => item.updatedAt).whereType<DateTime>().fold<DateTime?>(
       null, (latest, value) => latest == null || value.isAfter(latest) ? value : latest,
     );
+    if (cursor != null) {
+      final last = initial.where((item) => item.updatedAt == cursor).toList()
+        ..sort((a, b) => a.id.compareTo(b.id));
+      cursorId = last.isEmpty ? null : last.last.id;
+    }
     yield cache.values.toList();
     await for (final _ in Stream<void>.periodic(const Duration(seconds: 15))) {
-      final changes = await getAll(updatedSince: cursor);
+      final changes = await getAll(
+        updatedSince: cursor,
+        updatedAfterId: cursorId,
+        includeInactive: true,
+      );
       for (final item in changes) {
         cache[item.id] = item;
-        if (item.updatedAt != null && (cursor == null || item.updatedAt!.isAfter(cursor))) cursor = item.updatedAt;
+        if (item.updatedAt != null) {
+          cursor = item.updatedAt;
+          cursorId = item.id;
+        }
       }
       if (changes.isNotEmpty) yield cache.values.where((item) => item.isActive).toList();
     }
   }
 
-  Future<List<Incident>> getAll({DateTime? updatedSince}) async {
+  Future<List<Incident>> getAll({
+    DateTime? updatedSince,
+    String? updatedAfterId,
+    bool includeInactive = false,
+  }) async {
     final uri = updatedSince == null ? _incidentsUri : _incidentsUri.replace(
-      queryParameters: {'updated_since': updatedSince.toUtc().toIso8601String()},
+      queryParameters: {
+        'updated_since': updatedSince.toUtc().toIso8601String(),
+        if (updatedAfterId != null) 'updated_after_id': updatedAfterId,
+        if (includeInactive) 'active_only': 'false',
+      },
     );
     final response = await _client.get(
       uri,

@@ -13,7 +13,8 @@ class NearbyUser:
 
 
 async def find_users_within_radius(
-    latitude: float, longitude: float, category: str, severity: str
+    latitude: float, longitude: float, category: str, severity: str,
+    reported_by: UUID | None = None,
 ) -> list[NearbyUser]:
     """Uses the partial GiST geography index; ST_DWithin is index-assisted."""
     point_sql = "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography"
@@ -28,6 +29,7 @@ async def find_users_within_radius(
                          THEN 'route' ELSE 'proximity' END AS reason
                 FROM users
                 WHERE location IS NOT NULL AND deleted_at IS NULL
+                  AND id IS DISTINCT FROM %s::uuid
                   AND (ST_DWithin(location, {point_sql}, alert_radius_m) OR
                        (alert_route IS NOT NULL AND alert_route_expires_at > NOW() AND
                         ST_DWithin(alert_route, {point_sql}, route_alert_radius_m)))
@@ -46,7 +48,7 @@ async def find_users_within_radius(
                          ELSE LOCALTIME > quiet_hours_end AND LOCALTIME < quiet_hours_start END)
                 """,
                 (longitude, latitude, longitude, latitude, longitude, latitude, longitude, latitude,
-                 category, severity, severity, severity),
+                 reported_by, category, severity, severity, severity),
             )
             rows = await cursor.fetchall()
     return [NearbyUser(row["id"], row["fcm_token"], row["distance_km"], row["reason"]) for row in rows]

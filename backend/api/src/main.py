@@ -164,6 +164,7 @@ async def create_incident(incident: IncidentInput, user: CurrentUser) -> Inciden
 @app.get("/incidents", response_model=list[IncidentOutput])
 async def list_incidents(
     _: CurrentUser, updated_since: datetime | None = None,
+    updated_after_id: UUID | None = None,
     categories: list[str] = Query(default=[]), severities: list[str] = Query(default=[]),
     active_only: bool = True, limit: int = Query(default=500, ge=1, le=2000),
 ) -> list[IncidentOutput]:
@@ -179,12 +180,15 @@ async def list_incidents(
                        u.id AS user_id, u.name AS user_name,
                        u.role AS user_role, u.trust_score AS user_trust_score
                 FROM incidents i LEFT JOIN users u ON u.id = i.reported_by
-                WHERE (%s::timestamptz IS NULL OR i.updated_at > %s::timestamptz)
+                WHERE (%s::timestamptz IS NULL OR
+                       i.updated_at > %s::timestamptz OR
+                       (i.updated_at = %s::timestamptz AND %s::uuid IS NOT NULL AND i.id > %s::uuid))
                   AND (cardinality(%s::text[]) = 0 OR i.category = ANY(%s::text[]))
                   AND (cardinality(%s::text[]) = 0 OR i.severity::text = ANY(%s::text[]))
                   AND (%s = FALSE OR i.workflow_status NOT IN ('rejeitado', 'resolvido'))
-                ORDER BY i.priority_score DESC, i.updated_at DESC LIMIT %s
-                """, (updated_since, updated_since, categories, categories, severities, severities, active_only, limit)
+                ORDER BY i.updated_at ASC, i.id ASC LIMIT %s
+                """, (updated_since, updated_since, updated_since, updated_after_id, updated_after_id,
+                      categories, categories, severities, severities, active_only, limit)
             )
             rows = await cursor.fetchall()
     return [
