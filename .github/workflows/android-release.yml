@@ -30,7 +30,7 @@ jobs:
       - name: Configurar Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.38.0"
+          flutter-version: "3.47.4"
           channel: stable
           cache: true
 
@@ -39,7 +39,7 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/urbaneye-upload-key.jks
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/urbaneye-release.jks
 
       - name: Criar key.properties
         working-directory: apps/mobile
@@ -48,7 +48,7 @@ jobs:
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=urbaneye-upload-key.jks
+          storeFile=urbaneye-release.jks
           EOF
 
       - name: Instalar dependências
