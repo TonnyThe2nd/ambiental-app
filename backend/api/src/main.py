@@ -15,6 +15,7 @@ from .auth import (AccessToken, CurrentUser, delete_account, login_user, registe
 from .producer import DuplicateIncidentError, create_incident_with_outbox
 from .community_validation import validate_incident
 from .alerts.dependencies import evaluate_user_proximity
+from .messaging import check_rabbitmq_connection
 from .models import (
     AlertPreferencesInput,
     CommunityValidationInput,
@@ -126,11 +127,16 @@ async def alert_preferences(data: AlertPreferencesInput, user: CurrentUser) -> R
 
 @app.get("/health")
 async def health(response: Response) -> dict[str, str]:
-    checks = {"api": "up", "database": "down"}
+    checks = {"api": "up", "database": "down", "rabbitmq": "down"}
     try:
         async with pool.connection() as connection:
             await connection.execute("SELECT 1")
         checks["database"] = "up"
+    except Exception:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    try:
+        await check_rabbitmq_connection()
+        checks["rabbitmq"] = "up"
     except Exception:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return checks
