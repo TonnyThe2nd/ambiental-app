@@ -34,6 +34,16 @@ ROUTING_KEY = "incident.created.v1"
 RETRY_ROUTING_KEY = "incident.created.retry.v1"
 
 
+async def check_rabbitmq_connection() -> None:
+    """Confirma que o broker aceita uma conexão AMQP e a abertura de um canal."""
+    connection = await aio_pika.connect(RABBITMQ_URL, timeout=5)
+    try:
+        channel = await connection.channel()
+        await channel.close()
+    finally:
+        await connection.close()
+
+
 async def declare_topology(channel: AbstractRobustChannel) -> None:
     events = await channel.declare_exchange(EVENT_EXCHANGE, ExchangeType.TOPIC, durable=True)
     retry = await channel.declare_exchange(RETRY_EXCHANGE, ExchangeType.DIRECT, durable=True)
