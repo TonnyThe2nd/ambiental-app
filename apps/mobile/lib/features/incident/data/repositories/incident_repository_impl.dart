@@ -20,7 +20,8 @@ class IncidentRepositoryImpl implements IncidentRepository {
     i.copyWith(
       status: IncidentStatus.synced,
       imageUrl: imageUrl,
-      lastError: '',
+      lastError: null,
+      nextAttemptAt: null,
     ),
   );
   @override

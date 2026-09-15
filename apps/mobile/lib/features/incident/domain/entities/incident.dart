@@ -1,5 +1,7 @@
 enum IncidentStatus { pending, synced, failed }
 
+const _unchanged = Object();
+
 class Incident {
   const Incident({
     required this.id,
@@ -39,10 +41,10 @@ class Incident {
   Incident copyWith({
     IncidentStatus? status,
     int? attempts,
-    String? imageUrl,
-    String? lastError,
-    String? reportedById,
-    String? reportedByName,
+    Object? imageUrl = _unchanged,
+    Object? lastError = _unchanged,
+    Object? reportedById = _unchanged,
+    Object? reportedByName = _unchanged,
     String? severity,
     String? workflowStatus,
     double? riskScore,
@@ -51,8 +53,8 @@ class Incident {
     int? confirmationCount,
     int? rejectionCount,
     int? complementCount,
-    DateTime? updatedAt,
-    DateTime? nextAttemptAt,
+    Object? updatedAt = _unchanged,
+    Object? nextAttemptAt = _unchanged,
   }) => Incident(
     id: id,
     imagePath: imagePath,
@@ -62,10 +64,10 @@ class Incident {
     createdAt: createdAt,
     status: status ?? this.status,
     attempts: attempts ?? this.attempts,
-    imageUrl: imageUrl ?? this.imageUrl,
-    lastError: lastError ?? this.lastError,
-    reportedById: reportedById ?? this.reportedById,
-    reportedByName: reportedByName ?? this.reportedByName,
+    imageUrl: identical(imageUrl, _unchanged) ? this.imageUrl : imageUrl as String?,
+    lastError: identical(lastError, _unchanged) ? this.lastError : lastError as String?,
+    reportedById: identical(reportedById, _unchanged) ? this.reportedById : reportedById as String?,
+    reportedByName: identical(reportedByName, _unchanged) ? this.reportedByName : reportedByName as String?,
     severity: severity ?? this.severity,
     workflowStatus: workflowStatus ?? this.workflowStatus,
     riskScore: riskScore ?? this.riskScore,
@@ -74,7 +76,7 @@ class Incident {
     confirmationCount: confirmationCount ?? this.confirmationCount,
     rejectionCount: rejectionCount ?? this.rejectionCount,
     complementCount: complementCount ?? this.complementCount,
-    updatedAt: updatedAt ?? this.updatedAt,
-    nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
+    updatedAt: identical(updatedAt, _unchanged) ? this.updatedAt : updatedAt as DateTime?,
+    nextAttemptAt: identical(nextAttemptAt, _unchanged) ? this.nextAttemptAt : nextAttemptAt as DateTime?,
   );
 }

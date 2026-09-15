@@ -30,9 +30,6 @@ class HttpIncidentRemoteDataSource {
   Uri get _incidentsUri => _baseUri.resolve('/incidents');
 
   Future<Incident> upload(Incident incident) async {
-    final idempotencySource =
-        '${incident.createdAt.toUtc().toIso8601String()}|'
-        '${incident.latitude.toStringAsFixed(6)}|${incident.longitude.toStringAsFixed(6)}|${incident.category}';
     final response = await _client.post(
       _incidentsUri,
       headers: _auth.authorizedHeaders(json: true),
@@ -43,9 +40,7 @@ class HttpIncidentRemoteDataSource {
         'longitude': incident.longitude,
         'createdAt': incident.createdAt.toUtc().toIso8601String(),
         'imageUrl': incident.imageUrl,
-        'idempotencyKey': sha256
-            .convert(utf8.encode(idempotencySource))
-            .toString(),
+        'idempotencyKey': incidentIdempotencyKey(incident),
       }),
     );
     if (response.statusCode == 409) {
@@ -177,3 +172,7 @@ class HttpIncidentRemoteDataSource {
     }
   }
 }
+
+String incidentIdempotencyKey(Incident incident) => sha256
+    .convert(utf8.encode('incident:${incident.id}'))
+    .toString();
