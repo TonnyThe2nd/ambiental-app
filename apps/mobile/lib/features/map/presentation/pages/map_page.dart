@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -16,8 +18,11 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   static const _initialCenter = LatLng(-23.5505, -46.6333);
+  static const _feedRadiusMeters = 50000;
   final _mapController = MapController();
   LatLng? _userLocation;
+  LatLng _feedCenter = _initialCenter;
+  Timer? _feedRefresh;
   bool _locating = false;
   final _categories = <String>{};
   final _severities = <String>{};
@@ -47,7 +52,10 @@ class _MapPageState extends State<MapPage> {
       final position = await Geolocator.getCurrentPosition();
       if (!mounted) return;
       final location = LatLng(position.latitude, position.longitude);
-      setState(() => _userLocation = location);
+      setState(() {
+        _userLocation = location;
+        _feedCenter = location;
+      });
       _mapController.move(location, 15);
     } catch (error) {
       if (mounted && showError) {
@@ -60,6 +68,20 @@ class _MapPageState extends State<MapPage> {
     } finally {
       if (mounted) setState(() => _locating = false);
     }
+  }
+
+  void _onMapPositionChanged(MapCamera camera, bool hasGesture) {
+    if (!hasGesture) return;
+    _feedRefresh?.cancel();
+    _feedRefresh = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _feedCenter = camera.center);
+    });
+  }
+
+  @override
+  void dispose() {
+    _feedRefresh?.cancel();
+    super.dispose();
   }
 
   @override
@@ -81,7 +103,11 @@ class _MapPageState extends State<MapPage> {
       ),
     ),
     body: StreamBuilder<List<Incident>>(
-      stream: widget.repository.watchRemote(),
+      stream: widget.repository.watchRemote(
+        latitude: _feedCenter.latitude,
+        longitude: _feedCenter.longitude,
+        radiusMeters: _feedRadiusMeters,
+      ),
       builder: (context, remote) => FutureBuilder<List<Incident>>(
         future: widget.repository.getAll(),
         builder: (context, local) {
@@ -100,9 +126,10 @@ class _MapPageState extends State<MapPage> {
                 ),
                 child: FlutterMap(
                   mapController: _mapController,
-                  options: const MapOptions(
+                  options: MapOptions(
                     initialCenter: _initialCenter,
                     initialZoom: 11,
+                    onPositionChanged: _onMapPositionChanged,
                   ),
                   children: [
                     TileLayer(

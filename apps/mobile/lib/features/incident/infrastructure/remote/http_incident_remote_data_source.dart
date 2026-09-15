@@ -55,11 +55,19 @@ class HttpIncidentRemoteDataSource {
     return _fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Stream<List<Incident>> watch() async* {
+  Stream<List<Incident>> watch({
+    double? latitude,
+    double? longitude,
+    int radiusMeters = 50000,
+  }) async* {
     final cache = <String, Incident>{};
     DateTime? cursor;
     String? cursorId;
-    final initial = await getAll();
+    final initial = await getAll(
+      latitude: latitude,
+      longitude: longitude,
+      radiusMeters: radiusMeters,
+    );
     for (final item in initial) { cache[item.id] = item; }
     cursor = initial.map((item) => item.updatedAt).whereType<DateTime>().fold<DateTime?>(
       null, (latest, value) => latest == null || value.isAfter(latest) ? value : latest,
@@ -75,6 +83,9 @@ class HttpIncidentRemoteDataSource {
         updatedSince: cursor,
         updatedAfterId: cursorId,
         includeInactive: true,
+        latitude: latitude,
+        longitude: longitude,
+        radiusMeters: radiusMeters,
       );
       for (final item in changes) {
         cache[item.id] = item;
@@ -91,14 +102,25 @@ class HttpIncidentRemoteDataSource {
     DateTime? updatedSince,
     String? updatedAfterId,
     bool includeInactive = false,
+    double? latitude,
+    double? longitude,
+    int radiusMeters = 50000,
   }) async {
-    final uri = updatedSince == null ? _incidentsUri : _incidentsUri.replace(
-      queryParameters: {
+    final queryParameters = <String, String>{
+      if (updatedSince != null) ...{
         'updated_since': updatedSince.toUtc().toIso8601String(),
         'updated_after_id': ?updatedAfterId,
-        if (includeInactive) 'active_only': 'false',
       },
-    );
+      if (includeInactive) 'active_only': 'false',
+      if (latitude != null && longitude != null) ...{
+        'latitude': latitude.toString(),
+        'longitude': longitude.toString(),
+        'radius_m': radiusMeters.toString(),
+      },
+    };
+    final uri = queryParameters.isEmpty
+        ? _incidentsUri
+        : _incidentsUri.replace(queryParameters: queryParameters);
     final response = await _client.get(
       uri,
       headers: _auth.authorizedHeaders(),

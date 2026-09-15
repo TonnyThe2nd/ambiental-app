@@ -168,7 +168,15 @@ async def list_incidents(
     updated_after_id: UUID | None = None,
     categories: list[str] = Query(default=[]), severities: list[str] = Query(default=[]),
     active_only: bool = True, limit: int = Query(default=500, ge=1, le=2000),
+    latitude: float | None = Query(default=None, ge=-90, le=90),
+    longitude: float | None = Query(default=None, ge=-180, le=180),
+    radius_m: int = Query(default=50000, ge=1000, le=100000),
 ) -> list[IncidentOutput]:
+    if (latitude is None) != (longitude is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Latitude e longitude devem ser informadas juntas.",
+        )
     async with pool.connection() as connection:
         async with connection.cursor() as cursor:
             await cursor.execute(
@@ -187,9 +195,15 @@ async def list_incidents(
                   AND (cardinality(%s::text[]) = 0 OR i.category = ANY(%s::text[]))
                   AND (cardinality(%s::text[]) = 0 OR i.severity::text = ANY(%s::text[]))
                   AND (%s = FALSE OR i.workflow_status NOT IN ('rejeitado', 'resolvido'))
+                  AND (%s::float8 IS NULL OR ST_DWithin(
+                    i.location,
+                    ST_SetSRID(ST_MakePoint(%s::float8, %s::float8), 4326)::geography,
+                    %s
+                  ))
                 ORDER BY i.updated_at ASC, i.id ASC LIMIT %s
                 """, (updated_since, updated_since, updated_since, updated_after_id, updated_after_id,
-                      categories, categories, severities, severities, active_only, limit)
+                      categories, categories, severities, severities, active_only,
+                      latitude, longitude, latitude, radius_m, limit)
             )
             rows = await cursor.fetchall()
     return [
