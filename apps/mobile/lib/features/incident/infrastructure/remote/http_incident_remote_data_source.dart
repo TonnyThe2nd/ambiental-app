@@ -95,7 +95,7 @@ class HttpIncidentRemoteDataSource {
     final uri = updatedSince == null ? _incidentsUri : _incidentsUri.replace(
       queryParameters: {
         'updated_since': updatedSince.toUtc().toIso8601String(),
-        if (updatedAfterId != null) 'updated_after_id': updatedAfterId,
+        'updated_after_id': ?updatedAfterId,
         if (includeInactive) 'active_only': 'false',
       },
     );
