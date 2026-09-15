@@ -42,6 +42,9 @@ class AppInitializer {
     final local = HiveIncidentLocalDataSource(
       await Hive.openBox<Map<dynamic, dynamic>>('incidents'),
     );
+    await local.purgeSyncedOlderThan(
+      DateTime.now().toUtc().subtract(const Duration(days: 30)),
+    );
     final auth = AuthService();
     await auth.restoreSession();
     final location = GeolocatorLocationService();

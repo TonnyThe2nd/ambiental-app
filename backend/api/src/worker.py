@@ -62,6 +62,8 @@ def _send_fcm_batch(tokens: list[str], incident: IncidentInput):
             body=f"Foi registrado {category_label(incident.category)} em um raio de 10 km.",
         ),
         data={"incidentId": str(incident.id), "category": incident.category},
+        android=messaging.AndroidConfig(priority="high"),
+        apns=messaging.APNSConfig(headers={"apns-priority": "10"}),
     ))
 
 
@@ -99,8 +101,10 @@ async def process_event(envelope: dict) -> IncidentInput:
         result = await connection.execute("SELECT severity FROM incidents WHERE id = %s", (incident.id,))
         row = await result.fetchone()
     severity = row["severity"] if row else envelope["data"].get("severity", "moderado")
+    reporter = envelope["data"].get("reportedBy")
     users = await find_users_within_radius(
-        incident.latitude, incident.longitude, incident.category, severity
+        incident.latitude, incident.longitude, incident.category, severity,
+        UUID(reporter) if reporter else None,
     )
     await persist_notifications(incident, users)
     await dispatch_fcm(incident, users)

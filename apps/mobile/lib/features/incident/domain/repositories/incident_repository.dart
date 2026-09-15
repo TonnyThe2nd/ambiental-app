@@ -7,6 +7,10 @@ abstract class IncidentRepository {
   Future<void> markSynced(Incident incident, String imageUrl);
   Future<void> markFailed(Incident incident, Object error);
   Future<Incident> upload(Incident incident);
-  Stream<List<Incident>> watchRemote();
+  Stream<List<Incident>> watchRemote({
+    double? latitude,
+    double? longitude,
+    int radiusMeters = 50000,
+  });
   Future<void> validate(String incidentId, String vote, {String? comment});
 }

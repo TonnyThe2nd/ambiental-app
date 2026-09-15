@@ -15,8 +15,10 @@ from .auth import (AccessToken, CurrentUser, delete_account, login_user, registe
 from .producer import DuplicateIncidentError, create_incident_with_outbox
 from .community_validation import validate_incident
 from .alerts.dependencies import evaluate_user_proximity
+from .messaging import check_rabbitmq_connection
 from .models import (
     AlertPreferencesInput,
+    CampaignInput,
     CommunityValidationInput,
     AuthResponse,
     IncidentAccepted,
@@ -28,6 +30,7 @@ from .models import (
     RegisterInput,
     ReporterPublic,
     ReviewInput,
+    SensitiveAreaInput,
     UserLocationInput,
     UserOutput,
 )
@@ -43,16 +46,11 @@ _is_production = os.getenv("ENV", "development") == "production"
 
 app = FastAPI(
     title="UrbanEye API", version="2.0.0", lifespan=lifespan,
-    # Em produção a documentação interativa expõe a superfície inteira da API a quem
-    # descobrir a URL; fora dela continua disponível para o time.
     docs_url=None if _is_production else "/docs",
     redoc_url=None,
     openapi_url=None if _is_production else "/openapi.json",
 )
 
-# Argon2id consome ~64 MB de RAM por verificação de senha: sem limite, um punhado de
-# requisições paralelas derruba a API por exaustão de memória antes de qualquer senha
-# ser quebrada. O limite protege contra brute force e contra DoS ao mesmo tempo.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -126,11 +124,16 @@ async def alert_preferences(data: AlertPreferencesInput, user: CurrentUser) -> R
 
 @app.get("/health")
 async def health(response: Response) -> dict[str, str]:
-    checks = {"api": "up", "database": "down"}
+    checks = {"api": "up", "database": "down", "rabbitmq": "down"}
     try:
         async with pool.connection() as connection:
             await connection.execute("SELECT 1")
         checks["database"] = "up"
+    except Exception:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    try:
+        await check_rabbitmq_connection()
+        checks["rabbitmq"] = "up"
     except Exception:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return checks
@@ -164,9 +167,18 @@ async def create_incident(incident: IncidentInput, user: CurrentUser) -> Inciden
 @app.get("/incidents", response_model=list[IncidentOutput])
 async def list_incidents(
     _: CurrentUser, updated_since: datetime | None = None,
+    updated_after_id: UUID | None = None,
     categories: list[str] = Query(default=[]), severities: list[str] = Query(default=[]),
     active_only: bool = True, limit: int = Query(default=500, ge=1, le=2000),
+    latitude: float | None = Query(default=None, ge=-90, le=90),
+    longitude: float | None = Query(default=None, ge=-180, le=180),
+    radius_m: int = Query(default=50000, ge=1000, le=100000),
 ) -> list[IncidentOutput]:
+    if (latitude is None) != (longitude is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Latitude e longitude devem ser informadas juntas.",
+        )
     async with pool.connection() as connection:
         async with connection.cursor() as cursor:
             await cursor.execute(
@@ -179,12 +191,21 @@ async def list_incidents(
                        u.id AS user_id, u.name AS user_name,
                        u.role AS user_role, u.trust_score AS user_trust_score
                 FROM incidents i LEFT JOIN users u ON u.id = i.reported_by
-                WHERE (%s::timestamptz IS NULL OR i.updated_at > %s::timestamptz)
+                WHERE (%s::timestamptz IS NULL OR
+                       i.updated_at > %s::timestamptz OR
+                       (i.updated_at = %s::timestamptz AND %s::uuid IS NOT NULL AND i.id > %s::uuid))
                   AND (cardinality(%s::text[]) = 0 OR i.category = ANY(%s::text[]))
                   AND (cardinality(%s::text[]) = 0 OR i.severity::text = ANY(%s::text[]))
                   AND (%s = FALSE OR i.workflow_status NOT IN ('rejeitado', 'resolvido'))
-                ORDER BY i.priority_score DESC, i.updated_at DESC LIMIT %s
-                """, (updated_since, updated_since, categories, categories, severities, severities, active_only, limit)
+                  AND (%s::float8 IS NULL OR ST_DWithin(
+                    i.location,
+                    ST_SetSRID(ST_MakePoint(%s::float8, %s::float8), 4326)::geography,
+                    %s
+                  ))
+                ORDER BY i.updated_at ASC, i.id ASC LIMIT %s
+                """, (updated_since, updated_since, updated_since, updated_after_id, updated_after_id,
+                      categories, categories, severities, severities, active_only,
+                      latitude, longitude, latitude, radius_m, limit)
             )
             rows = await cursor.fetchall()
     return [
@@ -268,6 +289,51 @@ def require_operator(user: UserOutput) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Perfil de moderação necessário.")
 
 
+def require_administrator(user: UserOutput) -> None:
+    if user.role != "administrador":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Perfil administrativo necessário.")
+
+
+@app.get("/campaigns")
+async def list_campaigns(_: CurrentUser) -> list[dict]:
+    async with pool.connection() as connection:
+        result = await connection.execute("""SELECT id, title, description, campaign_type, starts_at, ends_at, points_reward
+            FROM campaigns WHERE active = TRUE AND starts_at <= NOW() AND ends_at >= NOW() ORDER BY ends_at ASC""")
+        return await result.fetchall()
+
+
+@app.post("/campaigns", status_code=status.HTTP_201_CREATED)
+async def create_campaign(data: CampaignInput, user: CurrentUser) -> dict:
+    require_administrator(user)
+    if data.ends_at <= data.starts_at:
+        raise HTTPException(status_code=422, detail="A campanha deve terminar após iniciar.")
+    async with pool.connection() as connection:
+        result = await connection.execute("""INSERT INTO campaigns (title, description, campaign_type, starts_at, ends_at, points_reward)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""", (data.title, data.description, data.campaign_type, data.starts_at, data.ends_at, data.points_reward))
+        row = await result.fetchone()
+        await connection.commit()
+    return {"id": str(row["id"]), "status": "created"}
+
+
+@app.post("/sensitive-areas", status_code=status.HTTP_201_CREATED)
+async def create_sensitive_area(data: SensitiveAreaInput, user: CurrentUser) -> dict:
+    require_administrator(user)
+    async with pool.connection() as connection:
+        result = await connection.execute("""INSERT INTO sensitive_areas (name, area_type, criticality, location, protection_radius_m)
+            VALUES (%s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, %s) RETURNING id""", (data.name, data.area_type, data.criticality, data.longitude, data.latitude, data.protection_radius_m))
+        row = await result.fetchone()
+        await connection.commit()
+    return {"id": str(row["id"]), "status": "created"}
+
+
+@app.get("/contributions/me")
+async def my_contributions(user: CurrentUser) -> list[dict]:
+    async with pool.connection() as connection:
+        result = await connection.execute("""SELECT id, incident_id, contribution_type, points, created_at
+            FROM citizen_contributions WHERE user_id = %s ORDER BY created_at DESC LIMIT 200""", (user.id,))
+        return await result.fetchall()
+
+
 @app.post("/incidents/{incident_id}/reviews", status_code=status.HTTP_204_NO_CONTENT)
 async def review_incident(incident_id: UUID, data: ReviewInput, user: CurrentUser) -> Response:
     require_operator(user)
@@ -288,6 +354,23 @@ async def review_incident(incident_id: UUID, data: ReviewInput, user: CurrentUse
                    verification_count = (SELECT count(*) FROM incident_reviews WHERE incident_id = %s),
                    updated_at = NOW() WHERE id = %s""", (data.decision, incident_id, incident_id),
             )
+            if data.decision in {"validado", "rejeitado"}:
+                adjustments = await connection.execute(
+                    """INSERT INTO incident_trust_adjustments (incident_id, user_id, delta)
+                       SELECT v.incident_id, v.user_id,
+                         CASE WHEN (v.vote = 'confirmar' AND %s = 'validado')
+                                    OR (v.vote = 'rejeitar' AND %s = 'rejeitado') THEN 2
+                              WHEN v.vote IN ('confirmar', 'rejeitar') THEN -3 ELSE 0 END
+                       FROM incident_validations v WHERE v.incident_id = %s
+                       ON CONFLICT (incident_id, user_id) DO NOTHING
+                       RETURNING user_id, delta""",
+                    (data.decision, data.decision, incident_id),
+                )
+                for adjustment in await adjustments.fetchall():
+                    await connection.execute(
+                        "UPDATE users SET trust_score = LEAST(100, GREATEST(0, trust_score + %s)) WHERE id = %s",
+                        (adjustment["delta"], adjustment["user_id"]),
+                    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

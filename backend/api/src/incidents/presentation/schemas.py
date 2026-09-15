@@ -46,3 +46,21 @@ class CommunityValidationInput(BaseModel):
     vote: str = Field(pattern=r"^(confirmar|rejeitar|complementar)$")
     comment: str | None = Field(default=None, max_length=2000)
     evidence_url: str | None = Field(default=None, validation_alias="evidenceUrl", max_length=2048)
+
+class CampaignInput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    title: str = Field(min_length=2, max_length=160)
+    description: str = Field(min_length=2, max_length=5000)
+    campaign_type: str = Field(validation_alias="campaignType", min_length=2, max_length=60)
+    starts_at: datetime = Field(validation_alias="startsAt")
+    ends_at: datetime = Field(validation_alias="endsAt")
+    points_reward: int = Field(default=0, validation_alias="pointsReward", ge=0, le=10000)
+
+class SensitiveAreaInput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    name: str = Field(min_length=2, max_length=160)
+    area_type: str = Field(validation_alias="areaType", min_length=2, max_length=60)
+    criticality: int = Field(ge=1, le=5)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    protection_radius_m: int = Field(default=1000, validation_alias="protectionRadiusMeters", ge=100, le=50000)

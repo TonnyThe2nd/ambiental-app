@@ -77,9 +77,9 @@ class PostgresUserRepository:
         async with pool.connection() as connection:
             await connection.execute(
                 """UPDATE users SET alert_radius_m=%s,alert_categories=%s,minimum_alert_severity=%s,
-                alert_cooldown_minutes=%s,quiet_hours_start=%s,quiet_hours_end=%s WHERE id=%s""",
+                alert_cooldown_minutes=%s,quiet_hours_start=%s,quiet_hours_end=%s,timezone=%s WHERE id=%s""",
                 (v["radius_meters"],v["categories"],v["minimum_severity"],v["cooldown_minutes"],
-                 v.get("quiet_hours_start"),v.get("quiet_hours_end"),user_id),
+                 v.get("quiet_hours_start"),v.get("quiet_hours_end"),v["timezone"],user_id),
             )
             await connection.commit()
 

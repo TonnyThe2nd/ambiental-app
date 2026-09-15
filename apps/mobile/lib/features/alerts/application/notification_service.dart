@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
@@ -14,6 +15,8 @@ import '../../../core/device/location_service.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
+const notificationFallbackPollingInterval = Duration(minutes: 5);
+const locationFallbackPollingInterval = Duration(minutes: 5);
 
 class AppNotification {
   const AppNotification({
@@ -60,6 +63,7 @@ class NotificationService extends ChangeNotifier {
   final http.Client _client;
   final Uri _baseUri;
   final _seenIds = <String>{};
+  static const _systemNotifications = MethodChannel('urbaneye/system_notifications');
   final _notifications = <AppNotification>[];
   Timer? _timer;
   Timer? _locationTimer;
@@ -68,6 +72,7 @@ class NotificationService extends ChangeNotifier {
   StreamSubscription<String>? _tokenRefresh;
   Location? _lastSentLocation;
   AppNotification? _latestUnread;
+  bool _pollInProgress = false;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   int get unreadCount =>
@@ -92,7 +97,10 @@ class NotificationService extends ChangeNotifier {
         (value) => _sendPosition(token: value, force: true),
       );
       await _foregroundMessages?.cancel();
-      _foregroundMessages = FirebaseMessaging.onMessage.listen((_) => _poll());
+      _foregroundMessages = FirebaseMessaging.onMessage.listen((message) {
+        unawaited(_showSystemNotification(message));
+        unawaited(_poll());
+      });
       await _openedMessages?.cancel();
       _openedMessages = FirebaseMessaging.onMessageOpenedApp.listen((_) => _poll());
     } catch (error) {
@@ -147,10 +155,10 @@ class NotificationService extends ChangeNotifier {
   void start() {
     if (!_auth.isAuthenticated || _timer != null) return;
     _poll();
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
+    _timer = Timer.periodic(notificationFallbackPollingInterval, (_) => _poll());
     unawaited(_sendPosition(force: true));
     _locationTimer = Timer.periodic(
-      const Duration(minutes: 2),
+      locationFallbackPollingInterval,
       (_) => _sendPosition(),
     );
   }
@@ -195,14 +203,13 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<void> _poll({bool announceNew = true}) async {
-    if (!_auth.isAuthenticated) return;
+    if (!_auth.isAuthenticated || _pollInProgress) return;
+    _pollInProgress = true;
     try {
       final response = await _client.get(
         _baseUri.resolve('/notifications?unread_only=false'),
         headers: _auth.authorizedHeaders(),
       );
-      // O polling roda a cada 20 s: sem tratar o 401 ele bate para sempre num token
-      // morto, sem nunca levar a pessoa de volta para a tela de login.
       if (response.statusCode == 401) {
         await _auth.handleUnauthorized();
         return;
@@ -221,7 +228,25 @@ class NotificationService extends ChangeNotifier {
       _seenIds.addAll(items.map((item) => item.id));
       _latestUnread = announceNew && fresh.isNotEmpty ? fresh.first : null;
       notifyListeners();
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      _pollInProgress = false;
+    }
+  }
+
+  Future<void> _showSystemNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    final title = notification?.title ?? 'Novo alerta ambiental';
+    final body = notification?.body ?? 'Há uma ocorrência próxima de você.';
+    try {
+      await _systemNotifications.invokeMethod<void>('show', {
+        'id': message.messageId?.hashCode ?? DateTime.now().microsecondsSinceEpoch,
+        'title': title,
+        'body': body,
+      });
+    } on PlatformException catch (error) {
+      debugPrint('Notificação local não exibida: ${error.message}');
+    }
   }
 
   void _handleAuthChange() {

@@ -7,6 +7,8 @@ import 'package:crypto/crypto.dart';
 import '../../domain/entities/incident.dart';
 import '../../../auth/application/auth_service.dart';
 
+const incidentFeedFallbackPollingInterval = Duration(minutes: 5);
+
 class HttpIncidentRemoteDataSource {
   HttpIncidentRemoteDataSource(
     this._auth, {
@@ -28,9 +30,6 @@ class HttpIncidentRemoteDataSource {
   Uri get _incidentsUri => _baseUri.resolve('/incidents');
 
   Future<Incident> upload(Incident incident) async {
-    final idempotencySource =
-        '${incident.createdAt.toUtc().toIso8601String()}|'
-        '${incident.latitude.toStringAsFixed(6)}|${incident.longitude.toStringAsFixed(6)}|${incident.category}';
     final response = await _client.post(
       _incidentsUri,
       headers: _auth.authorizedHeaders(json: true),
@@ -41,9 +40,7 @@ class HttpIncidentRemoteDataSource {
         'longitude': incident.longitude,
         'createdAt': incident.createdAt.toUtc().toIso8601String(),
         'imageUrl': incident.imageUrl,
-        'idempotencyKey': sha256
-            .convert(utf8.encode(idempotencySource))
-            .toString(),
+        'idempotencyKey': incidentIdempotencyKey(incident),
       }),
     );
     if (response.statusCode == 409) {
@@ -53,29 +50,72 @@ class HttpIncidentRemoteDataSource {
     return _fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Stream<List<Incident>> watch() async* {
+  Stream<List<Incident>> watch({
+    double? latitude,
+    double? longitude,
+    int radiusMeters = 50000,
+  }) async* {
     final cache = <String, Incident>{};
     DateTime? cursor;
-    final initial = await getAll();
+    String? cursorId;
+    final initial = await getAll(
+      latitude: latitude,
+      longitude: longitude,
+      radiusMeters: radiusMeters,
+    );
     for (final item in initial) { cache[item.id] = item; }
     cursor = initial.map((item) => item.updatedAt).whereType<DateTime>().fold<DateTime?>(
       null, (latest, value) => latest == null || value.isAfter(latest) ? value : latest,
     );
+    if (cursor != null) {
+      final last = initial.where((item) => item.updatedAt == cursor).toList()
+        ..sort((a, b) => a.id.compareTo(b.id));
+      cursorId = last.isEmpty ? null : last.last.id;
+    }
     yield cache.values.toList();
     await for (final _ in Stream<void>.periodic(const Duration(seconds: 15))) {
-      final changes = await getAll(updatedSince: cursor);
+      final changes = await getAll(
+        updatedSince: cursor,
+        updatedAfterId: cursorId,
+        includeInactive: true,
+        latitude: latitude,
+        longitude: longitude,
+        radiusMeters: radiusMeters,
+      );
       for (final item in changes) {
         cache[item.id] = item;
-        if (item.updatedAt != null && (cursor == null || item.updatedAt!.isAfter(cursor))) cursor = item.updatedAt;
+        if (item.updatedAt != null) {
+          cursor = item.updatedAt;
+          cursorId = item.id;
+        }
       }
       if (changes.isNotEmpty) yield cache.values.where((item) => item.isActive).toList();
     }
   }
 
-  Future<List<Incident>> getAll({DateTime? updatedSince}) async {
-    final uri = updatedSince == null ? _incidentsUri : _incidentsUri.replace(
-      queryParameters: {'updated_since': updatedSince.toUtc().toIso8601String()},
-    );
+  Future<List<Incident>> getAll({
+    DateTime? updatedSince,
+    String? updatedAfterId,
+    bool includeInactive = false,
+    double? latitude,
+    double? longitude,
+    int radiusMeters = 50000,
+  }) async {
+    final queryParameters = <String, String>{
+      if (updatedSince != null) ...{
+        'updated_since': updatedSince.toUtc().toIso8601String(),
+        'updated_after_id': ?updatedAfterId,
+      },
+      if (includeInactive) 'active_only': 'false',
+      if (latitude != null && longitude != null) ...{
+        'latitude': latitude.toString(),
+        'longitude': longitude.toString(),
+        'radius_m': radiusMeters.toString(),
+      },
+    };
+    final uri = queryParameters.isEmpty
+        ? _incidentsUri
+        : _incidentsUri.replace(queryParameters: queryParameters);
     final response = await _client.get(
       uri,
       headers: _auth.authorizedHeaders(),
@@ -120,8 +160,6 @@ class HttpIncidentRemoteDataSource {
   }
 
   void _ensureSuccess(http.Response response, {int? expectedStatus}) {
-    // Sem este caso, um token expirado só virava "falha de envio": a ocorrência ficava
-    // reagendando para sempre e o app nunca pedia login de novo.
     if (response.statusCode == 401) {
       unawaited(_auth.handleUnauthorized());
       throw const AuthException(sessionExpiredMessage);
@@ -134,3 +172,7 @@ class HttpIncidentRemoteDataSource {
     }
   }
 }
+
+String incidentIdempotencyKey(Incident incident) => sha256
+    .convert(utf8.encode('incident:${incident.id}'))
+    .toString();

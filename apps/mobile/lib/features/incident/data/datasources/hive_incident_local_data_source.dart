@@ -5,6 +5,16 @@ import '../../domain/entities/incident.dart';
 class HiveIncidentLocalDataSource {
   HiveIncidentLocalDataSource(this.box);
   final Box<Map<dynamic, dynamic>> box;
+
+  Future<int> purgeSyncedOlderThan(DateTime cutoff) async {
+    final staleKeys = box.toMap().entries
+        .where((entry) => shouldPurgeSyncedIncident(entry.value, cutoff))
+        .map((entry) => entry.key)
+        .toList();
+    if (staleKeys.isEmpty) return 0;
+    await box.deleteAll(staleKeys);
+    return staleKeys.length;
+  }
   Future<void> put(Incident i) => box.put(i.id, {
     'id': i.id,
     'imagePath': i.imagePath,
@@ -60,4 +70,13 @@ class HiveIncidentLocalDataSource {
         ),
       )
       .toList();
+}
+
+bool shouldPurgeSyncedIncident(Map<dynamic, dynamic> record, DateTime cutoff) {
+  final createdAt = record['createdAt'];
+  if (record['status'] != IncidentStatus.synced.name || createdAt is! int) {
+    return false;
+  }
+  return DateTime.fromMillisecondsSinceEpoch(createdAt, isUtc: true)
+      .isBefore(cutoff.toUtc());
 }

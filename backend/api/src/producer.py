@@ -55,6 +55,11 @@ async def create_incident_with_outbox(incident: IncidentInput, user_id: UUID) ->
                      json.dumps(context)),
                 )
                 await connection.execute(
+                    """INSERT INTO citizen_contributions (user_id, incident_id, contribution_type, points)
+                       VALUES (%s, %s, 'incident_report', 10) ON CONFLICT DO NOTHING""",
+                    (user_id, incident.id),
+                )
+                await connection.execute(
                     "INSERT INTO outbox (id, aggregate_id, event_type, payload) VALUES (%s, %s, %s, %s::jsonb)",
                     (event_id, incident.id, ROUTING_KEY, json.dumps(payload)),
                 )
