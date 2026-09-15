@@ -7,6 +7,9 @@ import 'package:crypto/crypto.dart';
 import '../../domain/entities/incident.dart';
 import '../../../auth/application/auth_service.dart';
 
+/// Refreshes the feed when a real-time delivery is not available.
+const incidentFeedFallbackPollingInterval = Duration(minutes: 5);
+
 class HttpIncidentRemoteDataSource {
   HttpIncidentRemoteDataSource(
     this._auth, {
@@ -62,7 +65,8 @@ class HttpIncidentRemoteDataSource {
       null, (latest, value) => latest == null || value.isAfter(latest) ? value : latest,
     );
     yield cache.values.toList();
-    await for (final _ in Stream<void>.periodic(const Duration(seconds: 15))) {
+    await for (final _
+        in Stream<void>.periodic(incidentFeedFallbackPollingInterval)) {
       final changes = await getAll(updatedSince: cursor);
       for (final item in changes) {
         cache[item.id] = item;
