@@ -7,7 +7,6 @@ import 'package:crypto/crypto.dart';
 import '../../domain/entities/incident.dart';
 import '../../../auth/application/auth_service.dart';
 
-/// Refreshes the feed when a real-time delivery is not available.
 const incidentFeedFallbackPollingInterval = Duration(minutes: 5);
 
 class HttpIncidentRemoteDataSource {
@@ -138,7 +137,10 @@ class HttpIncidentRemoteDataSource {
     final response = await _client.put(
       _baseUri.resolve('/incidents/$incidentId/community-validation'),
       headers: _auth.authorizedHeaders(json: true),
-      body: jsonEncode({'vote': vote, 'comment': ?comment}),
+      body: jsonEncode({
+        'vote': vote,
+        if (comment != null) 'comment': comment,
+      }),
     );
     _ensureSuccess(response);
   }

@@ -11,7 +11,6 @@ import 'package:flutter/services.dart';
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
 
-/// Periodic requests are only a fallback when a push cannot be delivered.
 const notificationFallbackPollingInterval = Duration(minutes: 5);
 const locationFallbackPollingInterval = Duration(minutes: 5);
 
