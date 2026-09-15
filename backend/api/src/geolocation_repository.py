@@ -13,7 +13,8 @@ class NearbyUser:
 
 
 async def find_users_within_radius(
-    latitude: float, longitude: float, category: str, severity: str
+    latitude: float, longitude: float, category: str, severity: str,
+    reported_by: UUID | None = None,
 ) -> list[NearbyUser]:
     """Uses the partial GiST geography index; ST_DWithin is index-assisted."""
     point_sql = "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography"
@@ -26,13 +27,16 @@ async def find_users_within_radius(
                        , CASE WHEN alert_route IS NOT NULL AND alert_route_expires_at > NOW() AND
                          ST_DWithin(alert_route, {point_sql}, route_alert_radius_m)
                          THEN 'route' ELSE 'proximity' END AS reason
+
                 FROM users u
                 WHERE u.location IS NOT NULL AND u.deleted_at IS NULL
-                  AND (ST_DWithin(u.location, {point_sql}, u.alert_radius_m) OR
-                       (u.alert_route IS NOT NULL AND u.alert_route_expires_at > NOW() AND
+                    AND u.id IS DISTINCT FROM %s::uuid
+                    AND (ST_DWithin(u.location, {point_sql}, u.alert_radius_m) OR
+                        (u.alert_route IS NOT NULL AND u.alert_route_expires_at > NOW() AND
                         ST_DWithin(u.alert_route, {point_sql}, u.route_alert_radius_m)))
-                  AND (cardinality(u.alert_categories) = 0 OR %s = ANY(u.alert_categories))
-                  AND CASE u.minimum_alert_severity
+                    AND (cardinality(u.alert_categories) = 0 OR %s = ANY(u.alert_categories))
+                    AND CASE u.minimum_alert_severity
+
                         WHEN 'leve' THEN 1 WHEN 'moderado' THEN 2 ELSE 3 END
                       <= CASE %s WHEN 'leve' THEN 1 WHEN 'moderado' THEN 2 ELSE 3 END
                   AND NOT EXISTS (
@@ -46,7 +50,7 @@ async def find_users_within_radius(
                          ELSE (NOW() AT TIME ZONE u.timezone)::time > u.quiet_hours_end
                               AND (NOW() AT TIME ZONE u.timezone)::time < u.quiet_hours_start END)
                 """,
-                (longitude, latitude, longitude, latitude, longitude, latitude, longitude, latitude,
+                (longitude, latitude, longitude, latitude, reported_by, longitude, latitude, longitude, latitude,
                  category, severity, severity, severity),
             )
             rows = await cursor.fetchall()

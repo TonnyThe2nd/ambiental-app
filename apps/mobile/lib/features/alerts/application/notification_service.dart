@@ -6,11 +6,11 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
 
-/// Periodic requests are only a fallback when a push cannot be delivered.
 const notificationFallbackPollingInterval = Duration(minutes: 5);
 const locationFallbackPollingInterval = Duration(minutes: 5);
 
@@ -59,6 +59,7 @@ class NotificationService extends ChangeNotifier {
   final http.Client _client;
   final Uri _baseUri;
   final _seenIds = <String>{};
+  static const _systemNotifications = MethodChannel('urbaneye/system_notifications');
   final _notifications = <AppNotification>[];
   Timer? _timer;
   Timer? _locationTimer;
@@ -92,7 +93,10 @@ class NotificationService extends ChangeNotifier {
         (value) => _sendPosition(token: value, force: true),
       );
       await _foregroundMessages?.cancel();
-      _foregroundMessages = FirebaseMessaging.onMessage.listen((_) => _poll());
+      _foregroundMessages = FirebaseMessaging.onMessage.listen((message) {
+        unawaited(_showSystemNotification(message));
+        unawaited(_poll());
+      });
       await _openedMessages?.cancel();
       _openedMessages = FirebaseMessaging.onMessageOpenedApp.listen((_) => _poll());
     } catch (error) {
@@ -202,8 +206,6 @@ class NotificationService extends ChangeNotifier {
         _baseUri.resolve('/notifications?unread_only=false'),
         headers: _auth.authorizedHeaders(),
       );
-      // A resposta 401 encerra a sessao em vez de manter o fallback consultando
-      // a API com um token que ja nao e valido.
       if (response.statusCode == 401) {
         await _auth.handleUnauthorized();
         return;
@@ -223,9 +225,23 @@ class NotificationService extends ChangeNotifier {
       _latestUnread = announceNew && fresh.isNotEmpty ? fresh.first : null;
       notifyListeners();
     } catch (_) {
-      // A proxima verificacao de fallback ou uma mensagem FCM tentara novamente.
     } finally {
       _pollInProgress = false;
+    }
+  }
+
+  Future<void> _showSystemNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    final title = notification?.title ?? 'Novo alerta ambiental';
+    final body = notification?.body ?? 'Há uma ocorrência próxima de você.';
+    try {
+      await _systemNotifications.invokeMethod<void>('show', {
+        'id': message.messageId?.hashCode ?? DateTime.now().microsecondsSinceEpoch,
+        'title': title,
+        'body': body,
+      });
+    } on PlatformException catch (error) {
+      debugPrint('Notificação local não exibida: ${error.message}');
     }
   }
 
