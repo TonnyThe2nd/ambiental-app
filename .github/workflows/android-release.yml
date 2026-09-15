@@ -1,0 +1,72 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build and publish APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.0"
+          channel: stable
+          cache: true
+
+      - name: Restaurar keystore
+        working-directory: apps/mobile
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/urbaneye-upload-key.jks
+
+      - name: Criar key.properties
+        working-directory: apps/mobile
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=urbaneye-upload-key.jks
+          EOF
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Gerar APK
+        run: |
+          flutter build apk \
+            --release \
+            --dart-define=API_BASE_URL=https://ambiental-app.onrender.com
+
+      - name: Renomear APK
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            urbaneye-${{ github.ref_name }}.apk
+
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/mobile/urbaneye-${{ github.ref_name }}.apk
+          generate_release_notes: true
