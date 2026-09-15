@@ -7,6 +7,9 @@ import 'package:crypto/crypto.dart';
 import '../../domain/entities/incident.dart';
 import '../../../auth/application/auth_service.dart';
 
+/// Refreshes the feed when a real-time delivery is not available.
+const incidentFeedFallbackPollingInterval = Duration(minutes: 5);
+
 class HttpIncidentRemoteDataSource {
   HttpIncidentRemoteDataSource(
     this._auth, {
