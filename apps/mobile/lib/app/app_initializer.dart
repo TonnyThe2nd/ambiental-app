@@ -48,10 +48,7 @@ class AppInitializer {
     await local.purgeSyncedOlderThan(
       DateTime.now().toUtc().subtract(const Duration(days: 30)),
     );
-    final auth = AuthService(
-      gateway: HttpAuthGateway(),
-      store: SecureAuthSessionStore(),
-    );
+    final auth = AuthService(HttpAuthGateway(), SecureAuthSessionStore());
     await auth.restoreSession();
     final location = GeolocatorLocationService();
     final notifications = NotificationService(

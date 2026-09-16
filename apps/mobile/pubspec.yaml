@@ -1,7 +1,7 @@
 name: urbaneye_mobile
 description: Aplicativo móvel UrbanEye para ocorrências ambientais.
 publish_to: 'none'
-version: 1.0.5+5
+version: 1.0.6+6
 
 environment:
   sdk: ^3.13.1

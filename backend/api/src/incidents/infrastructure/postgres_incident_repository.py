@@ -1,11 +1,14 @@
 from uuid import UUID
 from ...community_validation import validate_incident
-from ...database import pool
+from ...database import pool as default_pool
 from ...producer import create_incident_with_outbox
 from ..application.ports import IncidentFilters
 
 
 class PostgresIncidentRepository:
+    def __init__(self, database_pool=default_pool) -> None:
+        self._pool = database_pool
+
     async def create(self, incident: object, reporter_id: UUID) -> tuple[object, object]:
         return await create_incident_with_outbox(incident, reporter_id)
 
@@ -13,7 +16,7 @@ class PostgresIncidentRepository:
         return await validate_incident(incident_id, user_id, data)
 
     async def list(self, f: IncidentFilters) -> list[dict]:
-        async with pool.connection() as connection:
+        async with self._pool.connection() as connection:
             result = await connection.execute(
                 """SELECT i.id, i.category, i.latitude, i.longitude, i.occurred_at AS created_at,
                    i.image_url, i.severity, i.risk_score, i.health_impact, i.ecosystem_impact,
@@ -36,7 +39,7 @@ class PostgresIncidentRepository:
             return await result.fetchall()
 
     async def review(self, incident_id: UUID, reviewer_id: UUID, decision: str, notes: str | None) -> None:
-        async with pool.connection() as connection:
+        async with self._pool.connection() as connection:
             async with connection.transaction():
                 result = await connection.execute("SELECT 1 FROM incidents WHERE id=%s", (incident_id,))
                 if await result.fetchone() is None: raise LookupError("incident")

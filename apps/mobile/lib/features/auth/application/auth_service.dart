@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../domain/entities/auth_user.dart';
 import '../domain/repositories/auth_gateway.dart';
+export '../domain/repositories/auth_gateway.dart'
+    show AuthException, sessionExpiredMessage;
 
 class AuthService extends ChangeNotifier {
-  AuthService({required AuthGateway gateway, required AuthSessionStore store})
-    : _gateway = gateway,
-      _store = store;
+  AuthService(this._gateway, this._store);
 
   final AuthGateway _gateway;
   final AuthSessionStore _store;
@@ -79,5 +79,3 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 }
-
-export '../domain/repositories/auth_gateway.dart' show AuthException, sessionExpiredMessage;
