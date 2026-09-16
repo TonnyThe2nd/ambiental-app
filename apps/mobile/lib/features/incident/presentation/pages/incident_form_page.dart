@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/app_initializer.dart';
 import '../../domain/usecases/create_incident_use_case.dart';
+import '../models/incident_category_visual.dart';
 
 class IncidentFormPage extends StatefulWidget {
   const IncidentFormPage({super.key, required this.dependencies});
@@ -170,11 +171,17 @@ class _IncidentFormPageState extends State<IncidentFormPage> {
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.category_outlined),
           ),
-          items: const ['alagamento', 'poluicao', 'lixo', 'outro']
+          items: incidentCategories
               .map(
                 (item) => DropdownMenuItem(
-                  value: item,
-                  child: Text(_categoryLabel(item)),
+                  value: item.id,
+                  child: Row(
+                    children: [
+                      Icon(item.icon, color: item.color, size: 21),
+                      const SizedBox(width: 10),
+                      Flexible(child: Text(item.label)),
+                    ],
+                  ),
                 ),
               )
               .toList(),
@@ -232,10 +239,3 @@ class _IncidentFormPageState extends State<IncidentFormPage> {
     ),
   );
 }
-
-String _categoryLabel(String category) => switch (category) {
-  'alagamento' => 'Alagamento',
-  'poluicao' => 'Poluição',
-  'lixo' => 'Descarte de lixo',
-  _ => 'Outro',
-};

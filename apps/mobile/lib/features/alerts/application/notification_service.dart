@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
+import '../domain/notification_gateway.dart';
+import '../domain/app_notification.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -18,50 +18,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 const notificationFallbackPollingInterval = Duration(minutes: 5);
 const locationFallbackPollingInterval = Duration(minutes: 5);
 
-class AppNotification {
-  const AppNotification({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.createdAt,
-    this.readAt,
-  });
-
-  final String id;
-  final String title;
-  final String message;
-  final DateTime createdAt;
-  final DateTime? readAt;
-
-  factory AppNotification.fromJson(Map<String, dynamic> json) =>
-      AppNotification(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        message: json['message'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-        readAt: json['readAt'] == null
-            ? null
-            : DateTime.parse(json['readAt'] as String),
-      );
-}
-
 class NotificationService extends ChangeNotifier {
-  NotificationService(this._auth, this._location, {http.Client? client, String? baseUrl})
-    : _client = client ?? http.Client(),
-      _baseUri = Uri.parse(
-        baseUrl ??
-            const String.fromEnvironment(
-              'API_BASE_URL',
-              defaultValue: 'http://10.0.2.2:8000',
-            ),
-      ) {
+  NotificationService(this._auth, this._location, this._gateway) {
     _auth.addListener(_handleAuthChange);
   }
 
   final AuthService _auth;
   final LocationService _location;
-  final http.Client _client;
-  final Uri _baseUri;
+  final NotificationGateway _gateway;
   final _seenIds = <String>{};
   static const _systemNotifications = MethodChannel('urbaneye/system_notifications');
   final _notifications = <AppNotification>[];
@@ -118,20 +82,7 @@ class NotificationService extends ChangeNotifier {
       if (!force && previous != null) {
         if (_distanceMeters(previous, position) < 250) return;
       }
-      final response = await _client.put(
-        _baseUri.resolve('/auth/me/location'),
-        headers: _auth.authorizedHeaders(json: true),
-        body: jsonEncode({
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'fcmToken': ?token,
-        }),
-      );
-      if (response.statusCode == 401) {
-        await _auth.handleUnauthorized();
-        return;
-      }
-      if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (await _gateway.updatePosition(latitude: position.latitude, longitude: position.longitude, fcmToken: token)) {
         _lastSentLocation = position;
         unawaited(_poll());
       }
@@ -180,15 +131,7 @@ class NotificationService extends ChangeNotifier {
   Future<void> refresh() => _poll(announceNew: false);
 
   Future<void> markRead(String id) async {
-    final response = await _client.post(
-      _baseUri.resolve('/notifications/$id/read'),
-      headers: _auth.authorizedHeaders(),
-    );
-    if (response.statusCode == 401) {
-      await _auth.handleUnauthorized();
-      return;
-    }
-    if (response.statusCode < 200 || response.statusCode >= 300) return;
+    if (!await _gateway.markRead(id)) return;
     final index = _notifications.indexWhere((item) => item.id == id);
     if (index < 0) return;
     final current = _notifications[index];
@@ -206,18 +149,7 @@ class NotificationService extends ChangeNotifier {
     if (!_auth.isAuthenticated || _pollInProgress) return;
     _pollInProgress = true;
     try {
-      final response = await _client.get(
-        _baseUri.resolve('/notifications?unread_only=false'),
-        headers: _auth.authorizedHeaders(),
-      );
-      if (response.statusCode == 401) {
-        await _auth.handleUnauthorized();
-        return;
-      }
-      if (response.statusCode < 200 || response.statusCode >= 300) return;
-      final body = jsonDecode(response.body) as List<dynamic>;
-      final items = body
-          .map((item) => AppNotification.fromJson(item as Map<String, dynamic>))
+      final items = (await _gateway.list())
           .toList();
       final fresh = items
           .where((item) => item.readAt == null && !_seenIds.contains(item.id))

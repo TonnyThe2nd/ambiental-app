@@ -139,7 +139,10 @@ class _HomeState extends State<_Home> {
   Widget build(BuildContext context) {
     final pages = [
       IncidentFormPage(dependencies: widget.dependencies),
-      MapPage(repository: widget.dependencies.repository),
+      MapPage(
+        repository: widget.dependencies.repository,
+        locationService: widget.dependencies.location,
+      ),
       WeatherPage(locationService: widget.dependencies.location),
       AccountPage(
         auth: widget.dependencies.auth,

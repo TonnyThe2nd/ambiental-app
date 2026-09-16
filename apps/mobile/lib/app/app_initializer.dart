@@ -9,8 +9,11 @@ import '../features/incident/data/repositories/incident_repository_impl.dart';
 import '../features/incident/domain/repositories/incident_repository.dart';
 import '../features/incident/infrastructure/camera/camera_service.dart';
 import '../features/auth/application/auth_service.dart';
+import '../features/auth/infrastructure/http_auth_gateway.dart';
+import '../features/auth/infrastructure/secure_auth_session_store.dart';
 import '../core/device/location_service.dart';
 import '../features/alerts/application/notification_service.dart';
+import '../features/alerts/infrastructure/http_notification_gateway.dart';
 import '../features/incident/infrastructure/remote/http_incident_remote_data_source.dart';
 import '../features/incident/application/sync_incidents_service.dart';
 import '../features/incident/infrastructure/sync/background_sync.dart';
@@ -45,10 +48,17 @@ class AppInitializer {
     await local.purgeSyncedOlderThan(
       DateTime.now().toUtc().subtract(const Duration(days: 30)),
     );
-    final auth = AuthService();
+    final auth = AuthService(
+      gateway: HttpAuthGateway(),
+      store: SecureAuthSessionStore(),
+    );
     await auth.restoreSession();
     final location = GeolocatorLocationService();
-    final notifications = NotificationService(auth, location);
+    final notifications = NotificationService(
+      auth,
+      location,
+      HttpNotificationGateway(auth),
+    );
     final remote = HttpIncidentRemoteDataSource(auth);
     final repository = IncidentRepositoryImpl(local: local, remote: remote);
     final dependencies = AppDependencies(

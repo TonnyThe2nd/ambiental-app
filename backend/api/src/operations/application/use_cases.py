@@ -1,0 +1,39 @@
+from datetime import datetime, timedelta, timezone
+from typing import Protocol
+from uuid import UUID
+
+
+class OperationsRepository(Protocol):
+    async def active_campaigns(self)->list[dict]: ...
+    async def create_campaign(self,data:object)->UUID: ...
+    async def create_sensitive_area(self,data:object)->UUID: ...
+    async def contributions(self,user_id:UUID)->list[dict]: ...
+    async def dashboard(self,since:datetime)->dict: ...
+    async def metrics(self)->dict: ...
+
+class OperationsUseCase(Protocol):
+    async def campaigns(self)->list[dict]: ...
+    async def create_campaign(self,data:object)->UUID: ...
+    async def create_sensitive_area(self,data:object)->UUID: ...
+    async def contributions(self,user_id:UUID)->list[dict]: ...
+    async def dashboard(self,days:int)->dict: ...
+    async def metrics(self)->dict: ...
+
+
+class OperationsUseCases(OperationsUseCase):
+    def __init__(self,repository:OperationsRepository)->None:self._repository=repository
+
+    async def campaigns(self)->list[dict]:return await self._repository.active_campaigns()
+
+    async def create_campaign(self,data:object)->UUID:
+        if data.ends_at<=data.starts_at:raise ValueError("A campanha deve terminar após iniciar.")
+        return await self._repository.create_campaign(data)
+
+    async def create_sensitive_area(self,data:object)->UUID:return await self._repository.create_sensitive_area(data)
+
+    async def contributions(self,user_id:UUID)->list[dict]:return await self._repository.contributions(user_id)
+
+    async def dashboard(self,days:int)->dict:
+        days=min(max(days,1),365); result=await self._repository.dashboard(datetime.now(timezone.utc)-timedelta(days=days)); result["periodDays"]=days; return result
+
+    async def metrics(self)->dict:return await self._repository.metrics()

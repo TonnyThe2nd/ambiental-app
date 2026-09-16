@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Protocol
 
 from pwdlib import PasswordHash
 
@@ -7,7 +8,20 @@ from ..domain.entities import User
 from .ports import RevokedTokenRepository, UserRepository
 
 
-class AuthenticationService:
+class AuthenticationUseCases(Protocol):
+    async def register(self, **values) -> tuple[str, User]: ...
+    async def login(self, **values) -> tuple[str, User]: ...
+    async def authenticate(self, token: str) -> User: ...
+    async def revoke(self, token: str) -> None: ...
+
+
+class UserProfileUseCases(Protocol):
+    async def update_location(self, user_id: UUID, **values) -> None: ...
+    async def update_alert_preferences(self, user_id: UUID, **values) -> None: ...
+    async def delete_account(self, user_id: UUID) -> bool: ...
+
+
+class AuthenticationService(AuthenticationUseCases):
     def __init__(self, repository: UserRepository, tokens,
                  revoked_tokens: RevokedTokenRepository | None = None):
         self._repository = repository
@@ -66,7 +80,7 @@ class AuthenticationService:
         await self._revoked_tokens.revoke(jti=jti, user_id=user_id, expires_at=expires_at)
 
 
-class UserProfileService:
+class UserProfileService(UserProfileUseCases):
     def __init__(self, repository: UserRepository):
         self._repository = repository
 

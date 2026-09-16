@@ -28,7 +28,19 @@ def retry_count(message: AbstractIncomingMessage) -> int:
 
 
 def category_label(category: str) -> str:
-    return {"alagamento": "alagamento", "poluicao": "poluição", "lixo": "descarte de lixo"}.get(category, "ocorrência ambiental")
+    return {
+        "alagamento": "alagamento",
+        "poluicao": "poluição",
+        "lixo": "descarte de lixo",
+        "queimada": "incêndio ou queimada",
+        "incendio": "incêndio ou queimada",
+        "desmatamento": "desmatamento",
+        "esgoto": "esgoto a céu aberto",
+        "ruido": "poluição sonora",
+        "erosao": "erosão ou deslizamento",
+        "arvore_caida": "árvore caída",
+        "animal_morto": "animal morto em via pública",
+    }.get(category, "ocorrência ambiental")
 
 
 async def persist_notifications(incident: IncidentInput, users: list[NearbyUser]) -> None:

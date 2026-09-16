@@ -1,454 +1,64 @@
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
-from uuid import UUID
-from fastapi import FastAPI, HTTPException, Query, Request, Response, status
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from psycopg.types.json import Jsonb
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-
-from .database import lifespan_pool, pool
-from .auth import (AccessToken, CurrentUser, delete_account, login_user, register_user,
-                   revoke_access_token, update_alert_preferences, update_user_location)
-from .producer import DuplicateIncidentError, create_incident_with_outbox
-from .community_validation import validate_incident
-from .alerts.dependencies import evaluate_user_proximity
-from .messaging import check_rabbitmq_connection
-from .models import (
-    AlertPreferencesInput,
-    CampaignInput,
-    CommunityValidationInput,
-    AuthResponse,
-    IncidentAccepted,
-    EnvironmentalObservationInput,
-    IncidentInput,
-    IncidentOutput,
-    LoginInput,
-    NotificationOutput,
-    RegisterInput,
-    ReporterPublic,
-    ReviewInput,
-    SensitiveAreaInput,
-    UserLocationInput,
-    UserOutput,
-)
+from .database import lifespan_pool
+from .identity.presentation.router import create_identity_router
+from .alerts.application.notification_use_cases import ListNotifications, MarkNotificationRead
+from .alerts.infrastructure.postgres_notification_repository import PostgresNotificationRepository
+from .alerts.presentation.router import create_alerts_router
+from .incidents.application.use_cases import CreateIncident, ListIncidents, ReviewIncident, ValidateIncident
+from .incidents.infrastructure.postgres_incident_repository import PostgresIncidentRepository
+from .incidents.presentation.router import create_incidents_router
+from .monitoring.application.health_service import GetSystemHealth
+from .monitoring.application.observation_use_cases import GetObservationHistory, SaveObservation
+from .monitoring.infrastructure.health_checks import PostgresHealthCheck, RabbitMqHealthCheck
+from .monitoring.infrastructure.postgres_observation_repository import PostgresObservationRepository
+from .monitoring.presentation.router import create_monitoring_router
+from .operations.application.use_cases import OperationsUseCases
+from .operations.infrastructure.postgres_operations_repository import PostgresOperationsRepository
+from .operations.presentation.router import create_operations_router
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    async with lifespan_pool():
-        yield
+    async with lifespan_pool(): yield
 
 
-_is_production = os.getenv("ENV", "development") == "production"
+def create_app() -> FastAPI:
+    production = os.getenv("ENV", "development") == "production"
+    application = FastAPI(title="UrbanEye API", version="2.0.0", lifespan=lifespan,
+        docs_url=None if production else "/docs", redoc_url=None,
+        openapi_url=None if production else "/openapi.json")
+    limiter = Limiter(key_func=get_remote_address)
+    application.state.limiter = limiter
+    application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    origins = [item.strip() for item in os.getenv("ALLOWED_ORIGINS", "").split(",") if item.strip()]
+    application.add_middleware(CORSMiddleware, allow_origins=origins or ["http://localhost:3000"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
 
-app = FastAPI(
-    title="UrbanEye API", version="2.0.0", lifespan=lifespan,
-    docs_url=None if _is_production else "/docs",
-    redoc_url=None,
-    openapi_url=None if _is_production else "/openapi.json",
-)
+    notifications = PostgresNotificationRepository()
+    incidents = PostgresIncidentRepository()
+    observations = PostgresObservationRepository()
+    operations = PostgresOperationsRepository()
+    application.include_router(create_identity_router(limiter))
+    application.include_router(create_alerts_router(ListNotifications(notifications), MarkNotificationRead(notifications)))
+    application.include_router(create_incidents_router(CreateIncident(incidents), ListIncidents(incidents), ValidateIncident(incidents), ReviewIncident(incidents)))
+    application.include_router(create_monitoring_router(GetSystemHealth(PostgresHealthCheck(), RabbitMqHealthCheck()), SaveObservation(observations), GetObservationHistory(observations)))
+    application.include_router(create_operations_router(OperationsUseCases(operations)))
 
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-_allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_allowed_origins or ["http://localhost:3000"],
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-
-
-@app.middleware("http")
-async def security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("X-Frame-Options", "DENY")
-    response.headers.setdefault("Referrer-Policy", "no-referrer")
-    if _is_production:
-        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-    return response
-
-
-@app.post("/auth/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("10/hour")
-async def register(request: Request, data: RegisterInput) -> AuthResponse:
-    return await register_user(data)
+    @application.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        if production: response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
+    return application
 
 
-@app.post("/auth/login", response_model=AuthResponse)
-@limiter.limit("5/minute")
-async def login(request: Request, data: LoginInput) -> AuthResponse:
-    return await login_user(data)
-
-
-@app.get("/auth/me", response_model=UserOutput)
-async def me(user: CurrentUser) -> UserOutput:
-    return user
-
-
-@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(token: AccessToken) -> Response:
-    await revoke_access_token(token)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.delete("/auth/me", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_me(user: CurrentUser, token: AccessToken) -> Response:
-    """Direito de eliminação (LGPD art. 18, VI).
-
-    Anonimiza os dados pessoais e encerra a sessão. As ocorrências continuam no mapa
-    como informação pública, sem vínculo identificável com quem denunciou.
-    """
-    await delete_account(user.id, token)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.put("/auth/me/location", status_code=status.HTTP_204_NO_CONTENT)
-async def update_location(data: UserLocationInput, user: CurrentUser) -> Response:
-    await update_user_location(user.id, data)
-    await evaluate_user_proximity.execute(user.id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.put("/auth/me/alert-preferences", status_code=status.HTTP_204_NO_CONTENT)
-async def alert_preferences(data: AlertPreferencesInput, user: CurrentUser) -> Response:
-    await update_alert_preferences(user.id, data)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.get("/health")
-async def health(response: Response) -> dict[str, str]:
-    checks = {"api": "up", "database": "down", "rabbitmq": "down"}
-    try:
-        async with pool.connection() as connection:
-            await connection.execute("SELECT 1")
-        checks["database"] = "up"
-    except Exception:
-        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    try:
-        await check_rabbitmq_connection()
-        checks["rabbitmq"] = "up"
-    except Exception:
-        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    return checks
-
-
-@app.get("/ping")
-async def ping() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.post("/incidents", response_model=IncidentAccepted, status_code=status.HTTP_202_ACCEPTED)
-async def create_incident(incident: IncidentInput, user: CurrentUser) -> IncidentAccepted:
-    try:
-        _, assessment = await create_incident_with_outbox(incident, user.id)
-    except DuplicateIncidentError as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Incidente duplicado.") from error
-    except Exception as error:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Não foi possível persistir o incidente.",
-        ) from error
-    return IncidentAccepted(
-        **incident.model_dump(),
-        reported_by=ReporterPublic(id=user.id, name=user.name, trust_score=user.trust_score),
-        severity=assessment.severity,
-        risk_score=assessment.score, health_impact=assessment.health_impact,
-        ecosystem_impact=assessment.ecosystem_impact, community_impact=assessment.community_impact,
-    )
-
-
-@app.get("/incidents", response_model=list[IncidentOutput])
-async def list_incidents(
-    _: CurrentUser, updated_since: datetime | None = None,
-    updated_after_id: UUID | None = None,
-    categories: list[str] = Query(default=[]), severities: list[str] = Query(default=[]),
-    active_only: bool = True, limit: int = Query(default=500, ge=1, le=2000),
-    latitude: float | None = Query(default=None, ge=-90, le=90),
-    longitude: float | None = Query(default=None, ge=-180, le=180),
-    radius_m: int = Query(default=50000, ge=1000, le=100000),
-) -> list[IncidentOutput]:
-    if (latitude is None) != (longitude is None):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Latitude e longitude devem ser informadas juntas.",
-        )
-    async with pool.connection() as connection:
-        async with connection.cursor() as cursor:
-            await cursor.execute(
-                """
-                SELECT i.id, i.category, i.latitude, i.longitude, i.occurred_at, i.image_url,
-                       i.severity, i.risk_score, i.health_impact, i.ecosystem_impact,
-                       i.community_impact, i.workflow_status, i.environmental_context, i.updated_at,
-                       i.confidence_score, i.priority_score, i.confirmation_count,
-                       i.rejection_count, i.complement_count,
-                       u.id AS user_id, u.name AS user_name,
-                       u.role AS user_role, u.trust_score AS user_trust_score
-                FROM incidents i LEFT JOIN users u ON u.id = i.reported_by
-                WHERE (%s::timestamptz IS NULL OR
-                       i.updated_at > %s::timestamptz OR
-                       (i.updated_at = %s::timestamptz AND %s::uuid IS NOT NULL AND i.id > %s::uuid))
-                  AND (cardinality(%s::text[]) = 0 OR i.category = ANY(%s::text[]))
-                  AND (cardinality(%s::text[]) = 0 OR i.severity::text = ANY(%s::text[]))
-                  AND (%s = FALSE OR i.workflow_status NOT IN ('rejeitado', 'resolvido'))
-                  AND (%s::float8 IS NULL OR ST_DWithin(
-                    i.location,
-                    ST_SetSRID(ST_MakePoint(%s::float8, %s::float8), 4326)::geography,
-                    %s
-                  ))
-                ORDER BY i.updated_at ASC, i.id ASC LIMIT %s
-                """, (updated_since, updated_since, updated_since, updated_after_id, updated_after_id,
-                      categories, categories, severities, severities, active_only,
-                      latitude, longitude, latitude, radius_m, limit)
-            )
-            rows = await cursor.fetchall()
-    return [
-        IncidentOutput(
-            id=row["id"],
-            category=row["category"],
-            latitude=row["latitude"],
-            longitude=row["longitude"],
-            created_at=row["occurred_at"],
-            image_url=row["image_url"],
-            environmental_context=row["environmental_context"], severity=row["severity"],
-            risk_score=row["risk_score"], health_impact=row["health_impact"],
-            ecosystem_impact=row["ecosystem_impact"], community_impact=row["community_impact"],
-            workflow_status=row["workflow_status"],
-            updated_at=row["updated_at"], confidence_score=row["confidence_score"],
-            priority_score=row["priority_score"], confirmation_count=row["confirmation_count"],
-            rejection_count=row["rejection_count"], complement_count=row["complement_count"],
-            reported_by=ReporterPublic(
-                id=row["user_id"], name=row["user_name"], trust_score=row["user_trust_score"],
-            ) if row["user_id"] else None,
-        )
-        for row in rows
-    ]
-
-
-@app.put("/incidents/{incident_id}/community-validation")
-async def community_validation(
-    incident_id: UUID, data: CommunityValidationInput, user: CurrentUser,
-) -> dict:
-    try:
-        return await validate_incident(incident_id, user.id, data)
-    except LookupError as error:
-        raise HTTPException(status_code=404, detail="Ocorrência não encontrada.") from error
-    except PermissionError as error:
-        raise HTTPException(status_code=409, detail="O autor não pode validar a própria ocorrência.") from error
-
-
-@app.get("/notifications", response_model=list[NotificationOutput])
-async def list_notifications(user: CurrentUser, unread_only: bool = True) -> list[NotificationOutput]:
-    async with pool.connection() as connection:
-        async with connection.cursor() as cursor:
-            await cursor.execute(
-                """
-                SELECT id, incident_id, title, message, distance_km, read_at, created_at, severity
-                FROM notifications
-                WHERE user_id = %s AND (%s = FALSE OR read_at IS NULL)
-                ORDER BY created_at DESC
-                LIMIT 50
-                """,
-                (user.id, unread_only),
-            )
-            rows = await cursor.fetchall()
-    return [
-        NotificationOutput(
-            id=row["id"],
-            incident_id=row["incident_id"],
-            title=row["title"],
-            message=row["message"],
-            distance_km=row["distance_km"],
-            read_at=row["read_at"],
-            created_at=row["created_at"],
-            severity=row["severity"],
-        )
-        for row in rows
-    ]
-
-
-@app.post("/notifications/{notification_id}/read", status_code=status.HTTP_204_NO_CONTENT)
-async def mark_notification_read(notification_id: UUID, user: CurrentUser) -> Response:
-    async with pool.connection() as connection:
-        await connection.execute(
-            "UPDATE notifications SET read_at = NOW() WHERE id = %s AND user_id = %s AND read_at IS NULL",
-            (notification_id, user.id),
-        )
-        await connection.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-def require_operator(user: UserOutput) -> None:
-    if user.role not in {"moderador", "administrador"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Perfil de moderação necessário.")
-
-
-def require_administrator(user: UserOutput) -> None:
-    if user.role != "administrador":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Perfil administrativo necessário.")
-
-
-@app.get("/campaigns")
-async def list_campaigns(_: CurrentUser) -> list[dict]:
-    async with pool.connection() as connection:
-        result = await connection.execute("""SELECT id, title, description, campaign_type, starts_at, ends_at, points_reward
-            FROM campaigns WHERE active = TRUE AND starts_at <= NOW() AND ends_at >= NOW() ORDER BY ends_at ASC""")
-        return await result.fetchall()
-
-
-@app.post("/campaigns", status_code=status.HTTP_201_CREATED)
-async def create_campaign(data: CampaignInput, user: CurrentUser) -> dict:
-    require_administrator(user)
-    if data.ends_at <= data.starts_at:
-        raise HTTPException(status_code=422, detail="A campanha deve terminar após iniciar.")
-    async with pool.connection() as connection:
-        result = await connection.execute("""INSERT INTO campaigns (title, description, campaign_type, starts_at, ends_at, points_reward)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""", (data.title, data.description, data.campaign_type, data.starts_at, data.ends_at, data.points_reward))
-        row = await result.fetchone()
-        await connection.commit()
-    return {"id": str(row["id"]), "status": "created"}
-
-
-@app.post("/sensitive-areas", status_code=status.HTTP_201_CREATED)
-async def create_sensitive_area(data: SensitiveAreaInput, user: CurrentUser) -> dict:
-    require_administrator(user)
-    async with pool.connection() as connection:
-        result = await connection.execute("""INSERT INTO sensitive_areas (name, area_type, criticality, location, protection_radius_m)
-            VALUES (%s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, %s) RETURNING id""", (data.name, data.area_type, data.criticality, data.longitude, data.latitude, data.protection_radius_m))
-        row = await result.fetchone()
-        await connection.commit()
-    return {"id": str(row["id"]), "status": "created"}
-
-
-@app.get("/contributions/me")
-async def my_contributions(user: CurrentUser) -> list[dict]:
-    async with pool.connection() as connection:
-        result = await connection.execute("""SELECT id, incident_id, contribution_type, points, created_at
-            FROM citizen_contributions WHERE user_id = %s ORDER BY created_at DESC LIMIT 200""", (user.id,))
-        return await result.fetchall()
-
-
-@app.post("/incidents/{incident_id}/reviews", status_code=status.HTTP_204_NO_CONTENT)
-async def review_incident(incident_id: UUID, data: ReviewInput, user: CurrentUser) -> Response:
-    require_operator(user)
-    async with pool.connection() as connection:
-        async with connection.transaction():
-            exists = await connection.execute("SELECT 1 FROM incidents WHERE id = %s", (incident_id,))
-            if await exists.fetchone() is None:
-                raise HTTPException(status_code=404, detail="Ocorrência não encontrada.")
-            await connection.execute(
-                """INSERT INTO incident_reviews (incident_id, reviewer_id, decision, notes)
-                   VALUES (%s, %s, %s, %s)
-                   ON CONFLICT (incident_id, reviewer_id) DO UPDATE SET
-                   decision = EXCLUDED.decision, notes = EXCLUDED.notes, created_at = NOW()""",
-                (incident_id, user.id, data.decision, data.notes),
-            )
-            await connection.execute(
-                """UPDATE incidents SET workflow_status = %s,
-                   verification_count = (SELECT count(*) FROM incident_reviews WHERE incident_id = %s),
-                   updated_at = NOW() WHERE id = %s""", (data.decision, incident_id, incident_id),
-            )
-            if data.decision in {"validado", "rejeitado"}:
-                adjustments = await connection.execute(
-                    """INSERT INTO incident_trust_adjustments (incident_id, user_id, delta)
-                       SELECT v.incident_id, v.user_id,
-                         CASE WHEN (v.vote = 'confirmar' AND %s = 'validado')
-                                    OR (v.vote = 'rejeitar' AND %s = 'rejeitado') THEN 2
-                              WHEN v.vote IN ('confirmar', 'rejeitar') THEN -3 ELSE 0 END
-                       FROM incident_validations v WHERE v.incident_id = %s
-                       ON CONFLICT (incident_id, user_id) DO NOTHING
-                       RETURNING user_id, delta""",
-                    (data.decision, data.decision, incident_id),
-                )
-                for adjustment in await adjustments.fetchall():
-                    await connection.execute(
-                        "UPDATE users SET trust_score = LEAST(100, GREATEST(0, trust_score + %s)) WHERE id = %s",
-                        (adjustment["delta"], adjustment["user_id"]),
-                    )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.get("/dashboard/summary")
-async def dashboard_summary(user: CurrentUser, days: int = 30) -> dict:
-    require_operator(user)
-    days = min(max(days, 1), 365)
-    since = datetime.now(timezone.utc) - timedelta(days=days)
-    async with pool.connection() as connection:
-        categories = await connection.execute(
-            """SELECT category, severity, workflow_status, count(*) AS total,
-                      round(avg(risk_score), 2) AS average_risk
-               FROM incidents WHERE occurred_at >= %s
-               GROUP BY category, severity, workflow_status ORDER BY total DESC""", (since,)
-        )
-        breakdown = await categories.fetchall()
-        hotspots = await connection.execute(
-            """SELECT ST_Y(ST_Centroid(ST_Collect(location::geometry))) AS latitude,
-                      ST_X(ST_Centroid(ST_Collect(location::geometry))) AS longitude,
-                      count(*) AS total, max(risk_score) AS maximum_risk
-               FROM incidents WHERE occurred_at >= %s
-               GROUP BY ST_SnapToGrid(location::geometry, 0.01)
-               HAVING count(*) >= 2 ORDER BY total DESC LIMIT 50""", (since,)
-        )
-        hotspot_rows = await hotspots.fetchall()
-        trend = await connection.execute(
-            """SELECT date_trunc('day', occurred_at) AS day, count(*) AS total,
-                      count(*) FILTER (WHERE severity = 'critico') AS critical
-               FROM incidents WHERE occurred_at >= %s GROUP BY day ORDER BY day""", (since,)
-        )
-        trend_rows = await trend.fetchall()
-    return {"periodDays": days, "breakdown": breakdown, "hotspots": hotspot_rows, "trend": trend_rows}
-
-
-@app.get("/operations/metrics")
-async def operational_metrics(user: CurrentUser) -> dict:
-    if user.role != "administrador":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso administrativo necessário.")
-    async with pool.connection() as connection:
-        result = await connection.execute(
-            """SELECT (SELECT count(*) FROM outbox) AS outbox_pending,
-                 (SELECT count(*) FROM outbox WHERE attempts > 0) AS outbox_retries,
-                 (SELECT count(*) FROM notifications WHERE created_at >= NOW() - INTERVAL '24 hours') AS notifications_24h,
-                 (SELECT count(*) FROM processed_events WHERE processed_at >= NOW() - INTERVAL '24 hours') AS events_24h"""
-        )
-        return await result.fetchone()
-
-
-@app.post("/environmental-observations", status_code=status.HTTP_202_ACCEPTED)
-async def ingest_observation(data: EnvironmentalObservationInput, user: CurrentUser) -> dict[str, str]:
-    if user.role != "administrador":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso administrativo necessário.")
-    async with pool.connection() as connection:
-        await connection.execute(
-            """INSERT INTO environmental_observations
-               (region_key, observed_at, source, temperature_c, humidity_percent,
-                rainfall_mm, air_quality_index, payload)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-               ON CONFLICT (region_key, observed_at, source) DO UPDATE SET
-               temperature_c = EXCLUDED.temperature_c, humidity_percent = EXCLUDED.humidity_percent,
-               rainfall_mm = EXCLUDED.rainfall_mm, air_quality_index = EXCLUDED.air_quality_index,
-               payload = EXCLUDED.payload""",
-            (data.region_key, data.observed_at, data.source, data.temperature_c,
-             data.humidity_percent, data.rainfall_mm, data.air_quality_index, Jsonb(data.payload)),
-        )
-        await connection.commit()
-    return {"status": "accepted"}
-
-
-@app.get("/environmental-observations/{region_key}")
-async def observation_history(region_key: str, user: CurrentUser, days: int = 30) -> list[dict]:
-    days = min(max(days, 1), 365)
-    since = datetime.now(timezone.utc) - timedelta(days=days)
-    async with pool.connection() as connection:
-        result = await connection.execute(
-            """SELECT observed_at, source, temperature_c, humidity_percent, rainfall_mm,
-                      air_quality_index, payload FROM environmental_observations
-               WHERE region_key = %s AND observed_at >= %s ORDER BY observed_at DESC LIMIT 1000""",
-            (region_key, since),
-        )
-        return await result.fetchall()
+app = create_app()

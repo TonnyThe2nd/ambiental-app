@@ -35,6 +35,28 @@ backend/api/src/
 
 Os módulos `auth.py`, `database.py`, `models.py` e `risk_analysis.py` são fachadas de compatibilidade para imports e entrypoints existentes. Código novo importa do contexto proprietário. `main.py`, `worker.py` e a outbox são adaptadores de entrada.
 
+### Composition root e apresentação HTTP
+
+`main.py` configura middlewares e conecta routers a casos de uso. Cada contexto
+expõe seu router em `presentation/router.py`; endpoints não devem ser adicionados
+diretamente à composition root.
+
+O monitoramento exemplifica o fluxo completo:
+
+```text
+monitoring/presentation/router.py
+              |
+              v
+monitoring/application/GetSystemHealth -- depende de --> HealthCheck (porta)
+              ^
+              |
+monitoring/infrastructure/{PostgresHealthCheck,RabbitMqHealthCheck}
+```
+
+Falhas de PostgreSQL ou RabbitMQ são traduzidas pelo caso de uso para um relatório
+de saúde; o router decide apenas o status HTTP. O caso de uso pode ser testado com
+implementações em memória, sem FastAPI, banco ou broker.
+
 ## Aplicativo Flutter
 
 ```text
@@ -50,6 +72,25 @@ apps/mobile/lib/
 ```
 
 `AppInitializer` é a composition root: cria adaptadores e injeta dependências. Telas recebem capacidades prontas e não instanciam banco ou clientes HTTP.
+
+### Direção das dependências no mobile
+
+```text
+presentation -> application -> domain
+                         ^
+                         |
+                  infrastructure
+```
+
+- `domain` contém entidades e portas e não importa Flutter, HTTP ou plugins;
+- `application` mantém estado e coordena casos de uso através das portas;
+- `infrastructure` implementa HTTP, armazenamento seguro, GPS, câmera e outros plugins;
+- `presentation` observa o estado de aplicação e traduz interações do usuário;
+- somente `AppInitializer` instancia implementações concretas.
+
+No contexto de identidade, `AuthGateway` e `AuthSessionStore` são portas do
+domínio. `HttpAuthGateway` e `SecureAuthSessionStore` são adaptadores. O
+`AuthService` não conhece JSON, endpoints nem o plugin de armazenamento.
 
 ## Regras para evolução
 

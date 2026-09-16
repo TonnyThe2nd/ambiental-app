@@ -2,15 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../incident/domain/entities/incident.dart';
 import '../../../incident/domain/repositories/incident_repository.dart';
+import '../../../../core/device/location_service.dart';
+import '../../../incident/presentation/models/incident_category_visual.dart';
 
 class MapPage extends StatefulWidget {
-  const MapPage({super.key, required this.repository});
+  const MapPage({super.key, required this.repository, required this.locationService});
   final IncidentRepository repository;
+  final LocationService locationService;
 
   @override
   State<MapPage> createState() => _MapPageState();
@@ -38,18 +40,7 @@ class _MapPageState extends State<MapPage> {
     if (_locating) return;
     setState(() => _locating = true);
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        throw StateError('Ative o serviço de localização.');
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        throw StateError('Permissão de localização necessária.');
-      }
-      final position = await Geolocator.getCurrentPosition();
+      final position = await widget.locationService.current();
       if (!mounted) return;
       final location = LatLng(position.latitude, position.longitude);
       setState(() {
@@ -153,11 +144,8 @@ class _MapPageState extends State<MapPage> {
                               onTap: () => _showIncident(incident),
                               child: Tooltip(
                                 message: _markerDescription(incident),
-                                child: Icon(
-                                  Icons.location_pin,
-                                  color: _severityColor(incident.severity),
-                                  size: incident.priorityScore >= 75 ? 44 : 38,
-                                  semanticLabel: _categoryLabel(incident.category),
+                                child: _IncidentMarker(
+                                  incident: incident,
                                 ),
                               ),
                             ),
@@ -222,9 +210,9 @@ class _MapPageState extends State<MapPage> {
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Row(children: [
-                      ...['alagamento', 'lixo', 'incendio', 'poluicao'].map((value) =>
-                        FilterChip(label: Text(_categoryLabel(value)), selected: _categories.contains(value),
-                          onSelected: (selected) => setState(() => selected ? _categories.add(value) : _categories.remove(value)))),
+                      ...incidentCategories.where((item) => item.id != 'outro').map((item) =>
+                        FilterChip(avatar: Icon(item.icon, size: 17, color: item.color), label: Text(item.label), selected: _categories.contains(item.id),
+                          onSelected: (selected) => setState(() => selected ? _categories.add(item.id) : _categories.remove(item.id)))),
                       ...['critico', 'moderado'].map((value) =>
                         FilterChip(label: Text(value), selected: _severities.contains(value),
                           onSelected: (selected) => setState(() => selected ? _severities.add(value) : _severities.remove(value)))),
@@ -260,7 +248,7 @@ class _MapPageState extends State<MapPage> {
     final vote = await showModalBottomSheet<String>(context: context, builder: (context) =>
       SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(_categoryLabel(incident.category), style: Theme.of(context).textTheme.titleLarge),
+          Text(incidentCategoryVisual(incident.category).label, style: Theme.of(context).textTheme.titleLarge),
           Text('Risco ${incident.riskScore.toStringAsFixed(0)} · confiança ${incident.confidenceScore.toStringAsFixed(0)}%'),
           const SizedBox(height: 12),
           Wrap(spacing: 8, children: [
@@ -297,16 +285,29 @@ String _markerDescription(Incident incident) {
   final detail = incident.reportedByName == null
       ? incident.status.name
       : 'Registrado por ${incident.reportedByName}';
-  return '${_categoryLabel(incident.category)}\n$detail';
+  return '${incidentCategoryVisual(incident.category).label}\n$detail';
 }
 
-String _categoryLabel(String category) => switch (category) {
-  'alagamento' => 'Alagamento',
-  'poluicao' => 'Poluição',
-  'lixo' => 'Descarte de lixo',
-  'incendio' => 'Risco de incêndio',
-  _ => 'Outro',
-};
+class _IncidentMarker extends StatelessWidget {
+  const _IncidentMarker({required this.incident});
+  final Incident incident;
+  @override
+  Widget build(BuildContext context) {
+    final category = incidentCategoryVisual(incident.category);
+    final size = incident.priorityScore >= 75 ? 44.0 : 40.0;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: category.color,
+        shape: BoxShape.circle,
+        border: Border.all(color: _severityColor(incident.severity), width: 3),
+        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 6, offset: Offset(0, 3))],
+      ),
+      child: Icon(category.icon, color: Colors.white, size: size * .58, semanticLabel: category.label),
+    );
+  }
+}
 
 Color _severityColor(String severity) => switch (severity) {
   'critico' => Colors.red,
