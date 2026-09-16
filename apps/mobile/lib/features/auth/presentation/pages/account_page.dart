@@ -105,6 +105,39 @@ class AccountPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            Card(
+              color: const Color(0xFFD9EEE8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.verified_rounded, color: Color(0xFF176B5B)),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'UrbanEye atualizado!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF174C42),
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Você está usando o novo visual da versão 1.0.5.',
+                            style: TextStyle(color: Color(0xFF35685E)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             _NotificationsSection(notifications: notifications),
             const SizedBox(height: 20),
