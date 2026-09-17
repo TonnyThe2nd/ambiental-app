@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
@@ -14,6 +14,99 @@ import '../domain/app_notification.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  await SystemNotificationService.initialize();
+
+  if (message.notification == null) {
+    await SystemNotificationService.show(message);
+  }
+}
+
+class NotificationContent {
+  const NotificationContent({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  factory NotificationContent.fromMessage(RemoteMessage message) {
+    final data = message.data;
+    return NotificationContent(
+      title: message.notification?.title ??
+          data['title'] ??
+          'Novo alerta ambiental',
+      body: message.notification?.body ??
+          data['body'] ??
+          data['message'] ??
+          'Há uma ocorrência próxima de você.',
+    );
+  }
+}
+
+class SystemNotificationService {
+  static const channelId = 'environmental_alerts';
+  static const channelName = 'Alertas ambientais';
+  static const channelDescription =
+      'Alertas de ocorrências ambientais próximas';
+
+  static final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
+  static bool _initialized = false;
+
+  static Future<void> initialize() async {
+    if (_initialized) return;
+    const settings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
+    );
+    await _plugin.initialize(settings);
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          channelId,
+          channelName,
+          description: channelDescription,
+          importance: Importance.high,
+        ));
+    _initialized = true;
+  }
+
+  static Future<void> requestPermission() async {
+    await initialize();
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+  }
+
+  static Future<void> show(RemoteMessage message) async {
+    await initialize();
+    final content = NotificationContent.fromMessage(message);
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+    await _plugin.show(
+      message.messageId?.hashCode ?? DateTime.now().microsecondsSinceEpoch,
+      content.title,
+      content.body,
+      details,
+      payload: message.data['notificationId'] ?? message.messageId,
+    );
+  }
 }
 const notificationFallbackPollingInterval = Duration(minutes: 5);
 const locationFallbackPollingInterval = Duration(minutes: 5);
@@ -27,7 +120,6 @@ class NotificationService extends ChangeNotifier {
   final LocationService _location;
   final NotificationGateway _gateway;
   final _seenIds = <String>{};
-  static const _systemNotifications = MethodChannel('urbaneye/system_notifications');
   final _notifications = <AppNotification>[];
   Timer? _timer;
   Timer? _locationTimer;
@@ -53,7 +145,14 @@ class NotificationService extends ChangeNotifier {
     try {
       await Firebase.initializeApp();
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission();
+      await SystemNotificationService.initialize();
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
+      await SystemNotificationService.requestPermission();
+      await messaging.setForegroundNotificationPresentationOptions(
+        alert: false,
+        badge: false,
+        sound: false,
+      );
       final token = await messaging.getToken();
       if (token != null) await _sendPosition(token: token, force: true);
       await _tokenRefresh?.cancel();
@@ -67,6 +166,9 @@ class NotificationService extends ChangeNotifier {
       });
       await _openedMessages?.cancel();
       _openedMessages = FirebaseMessaging.onMessageOpenedApp.listen((_) => _poll());
+      if (await messaging.getInitialMessage() != null) {
+        unawaited(_poll());
+      }
     } catch (error) {
       debugPrint('FCM não pôde ser inicializado: $error');
     }
@@ -167,17 +269,10 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<void> _showSystemNotification(RemoteMessage message) async {
-    final notification = message.notification;
-    final title = notification?.title ?? 'Novo alerta ambiental';
-    final body = notification?.body ?? 'Há uma ocorrência próxima de você.';
     try {
-      await _systemNotifications.invokeMethod<void>('show', {
-        'id': message.messageId?.hashCode ?? DateTime.now().microsecondsSinceEpoch,
-        'title': title,
-        'body': body,
-      });
-    } on PlatformException catch (error) {
-      debugPrint('Notificação local não exibida: ${error.message}');
+      await SystemNotificationService.show(message);
+    } catch (error) {
+      debugPrint('Notificação local não exibida: $error');
     }
   }
 

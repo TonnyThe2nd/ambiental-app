@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -41,6 +42,13 @@ class AppInitializer {
   }) async {
     WidgetsFlutterBinding.ensureInitialized();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    try {
+      await Firebase.initializeApp();
+    } catch (error) {
+      // Keep the app usable in local builds without Firebase configuration.
+      debugPrint('Firebase não pôde ser inicializado: $error');
+    }
+    await SystemNotificationService.initialize();
     await Hive.initFlutter();
     final local = HiveIncidentLocalDataSource(
       await Hive.openBox<Map<dynamic, dynamic>>('incidents'),
