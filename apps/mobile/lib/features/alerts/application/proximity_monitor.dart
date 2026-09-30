@@ -23,20 +23,14 @@ typedef ProximityNotifier = Future<void> Function(ZoneEntry entry);
 /// servidor é suprimido para não duplicar a notificação.
 class ProximityMonitor extends ChangeNotifier {
   ProximityMonitor({
-    required AuthService auth,
-    required LocationService location,
-    required LocationTracker tracker,
-    required NotificationGateway gateway,
-    required HiveProximityStore store,
-    required ProximityNotifier notifier,
+    required this._auth,
+    required this._location,
+    required this._tracker,
+    required this._gateway,
+    required this._store,
+    required this._notifier,
     DateTime Function()? clock,
-  }) : _auth = auth,
-       _location = location,
-       _tracker = tracker,
-       _gateway = gateway,
-       _store = store,
-       _notifier = notifier,
-       _clock = clock ?? DateTime.now;
+  }) : _clock = clock ?? DateTime.now;
 
   final AuthService _auth;
   final LocationService _location;
