@@ -24,6 +24,15 @@ def _rabbitmq_url() -> str:
 
 
 RABBITMQ_URL = _rabbitmq_url()
+
+
+def broker_address(url: str = "") -> str:
+    """host:porta do broker, sem usuário e senha (seguro para logs)."""
+    from urllib.parse import urlsplit
+    parts = urlsplit(url or RABBITMQ_URL)
+    default_port = 5671 if parts.scheme == "amqps" else 5672
+    return f"{parts.hostname or '?'}:{parts.port or default_port}"
+
 EVENT_EXCHANGE = "urbaneye.events"
 RETRY_EXCHANGE = "urbaneye.retry"
 DEAD_EXCHANGE = "urbaneye.dead"
