@@ -14,8 +14,11 @@ logger = logging.getLogger("urbaneye.realtime")
 
 
 class RealtimeEventListener:
+    MAX_RETRY_SECONDS = 60.0
+
     def __init__(self, hub, cache, retry_seconds: float = 5.0) -> None:
         self._hub, self._cache, self._retry = hub, cache, retry_seconds
+        self._initial_retry = retry_seconds
         self._task: asyncio.Task | None = None
         self._connection = None
 
@@ -34,7 +37,8 @@ class RealtimeEventListener:
 
     async def _run(self) -> None:
         import aio_pika
-        from ...messaging import EVENT_EXCHANGE, RABBITMQ_URL, REALTIME_BINDING
+        from ...messaging import EVENT_EXCHANGE, RABBITMQ_URL, REALTIME_BINDING, broker_address
+        address = broker_address(RABBITMQ_URL)
         while True:
             try:
                 self._connection = await aio_pika.connect_robust(RABBITMQ_URL)
@@ -42,7 +46,8 @@ class RealtimeEventListener:
                 exchange = await channel.declare_exchange(EVENT_EXCHANGE, aio_pika.ExchangeType.TOPIC, durable=True)
                 queue = await channel.declare_queue(exclusive=True, auto_delete=True)
                 await queue.bind(exchange, REALTIME_BINDING)
-                logger.info("Tempo real: assinando %s em %s", REALTIME_BINDING, EVENT_EXCHANGE)
+                logger.info("Tempo real: assinando %s em %s (%s)", REALTIME_BINDING, EVENT_EXCHANGE, address)
+                self._retry = self._initial_retry
                 async with queue.iterator() as messages:
                     async for message in messages:
                         async with message.process(ignore_processed=True):
@@ -50,8 +55,12 @@ class RealtimeEventListener:
             except asyncio.CancelledError:
                 raise
             except Exception as error:
-                logger.warning("Tempo real sem broker (%s); nova tentativa em %ss", error, self._retry)
+                # Espera cresce até 1 min para não inundar o log quando o broker está fora.
+                logger.warning("Tempo real sem broker em %s (%s); nova tentativa em %.0fs. "
+                               "Confira RABBITMQ_URL ou RABBITMQ_HOST/PORT/USER/PASSWORD.",
+                               address, error, self._retry)
                 await asyncio.sleep(self._retry)
+                self._retry = min(self._retry * 2, self.MAX_RETRY_SECONDS)
             finally:
                 if self._connection is not None:
                     await self._connection.close()

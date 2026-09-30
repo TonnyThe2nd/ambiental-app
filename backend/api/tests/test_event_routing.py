@@ -59,3 +59,8 @@ def test_evento_do_barramento_invalida_cache_e_vai_para_o_hub():
     assert asyncio.run(listener.handle(body)) == 1
     assert cache.invalidations == 1 and hub.events[0]["eventType"] == "incident.created.v1"
     assert asyncio.run(listener.handle(b"{quebrado")) == 0
+
+
+def test_endereco_do_broker_no_log_nao_expoe_senha():
+    assert messaging.broker_address("amqp://urbaneye:segredo@urbaneye-rabbitmq:5672/") == "urbaneye-rabbitmq:5672"
+    assert messaging.broker_address("amqps://u:p@host.cloudamqp.com/vhost") == "host.cloudamqp.com:5671"
