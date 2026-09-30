@@ -32,6 +32,10 @@ services:
         generateValue: true
       - key: RABBITMQ_ERLANG_COOKIE
         generateValue: true
+      # O hostname do contêiner muda a cada deploy; sem nome fixo o RabbitMQ não
+      # reencontra as filas e mensagens gravadas no disco.
+      - key: RABBITMQ_NODENAME
+        value: rabbit@localhost
     disk:
       name: rabbitmq-data
       mountPath: /var/lib/rabbitmq

@@ -111,3 +111,25 @@ encerrado pelo usuário depende do push do servidor.
   cidade contava como "você está na área". Agora usa a área de impacto da ocorrência.
 - **O mapa recriava o feed e a conexão a cada filtro ou arrasto**, porque o stream era criado
   dentro do `build`. Agora só é refeito quando o centro se desloca mais de 5 km.
+
+## Implantação gratuita (Render + CloudAMQP)
+
+No Render, serviços privados e background workers não têm plano gratuito. Para custo zero:
+
+1. Crie um RabbitMQ gratuito no CloudAMQP (plano Little Lemur) e copie a AMQP URL.
+2. No serviço web da API no Render, configure:
+
+   ```text
+   RABBITMQ_URL=amqps://usuario:senha@host.rmq.cloudamqp.com/usuario
+   RABBITMQ_QUEUE_TYPE=classic
+   EMBEDDED_WORKERS=true
+   ```
+
+3. Para o push, adicione também `FCM_ENABLED=true`, `GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/firebase-service-account.json`
+   e o arquivo em **Secret Files**.
+
+Com `EMBEDDED_WORKERS=true`, a API executa o outbox-poller e o worker como tarefas no
+próprio processo, com reinício automático se o broker cair. O código continua separado
+em `outbox_service.py` e `worker.py`: com a variável desligada, os mesmos laços rodam como
+processos independentes (Docker Compose ou `render.yaml`), que é a topologia descrita na
+arquitetura. Sem broker, o WebSocket recusa conexões e o app volta à consulta a cada 15 s.

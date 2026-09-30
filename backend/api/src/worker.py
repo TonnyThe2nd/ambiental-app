@@ -115,9 +115,10 @@ async def process_event(envelope: dict) -> IncidentInput:
     return incident
 
 
-async def consume() -> None:
+async def consume_loop() -> None:
+    """Laço do consumidor; supõe o pool do banco já aberto (processo próprio ou API)."""
     connection = await aio_pika.connect_robust(RABBITMQ_URL)
-    async with connection, lifespan_pool():
+    async with connection:
         channel = await connection.channel(publisher_confirms=True)
         await channel.set_qos(prefetch_count=PREFETCH_COUNT)
         await declare_topology(channel)
@@ -139,6 +140,11 @@ async def consume() -> None:
                 else:
                     await message.ack()  # somente após todos os lotes FCM terminarem
                     logger.info("Ocorrência %s notificada", incident.id)
+
+
+async def consume() -> None:
+    async with lifespan_pool():
+        await consume_loop()
 
 
 async def _send_to_dead_letter(channel, source, reason: str) -> None:

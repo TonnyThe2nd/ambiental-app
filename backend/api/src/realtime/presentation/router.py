@@ -13,6 +13,7 @@ O token JWT vai no cabeçalho Authorization ou em ``?token=`` (clientes que não
 cabeçalhos no handshake). A conexão é recusada com código 4401 se o token for inválido.
 """
 import json
+from typing import Callable
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -21,11 +22,16 @@ from ...shared.domain.geohash import PARTITION_PRECISION
 from ..domain.hub import RealtimeHub, validate_prefixes
 
 
-def create_realtime_router(hub: RealtimeHub) -> APIRouter:
+def create_realtime_router(hub: RealtimeHub, available: Callable[[], bool] = lambda: True) -> APIRouter:
     router = APIRouter(tags=["realtime"])
 
     @router.websocket("/ws/incidents")
     async def incidents_stream(websocket: WebSocket, token: str | None = None) -> None:
+        if not available():
+            # Sem broker não chegam eventos: recusar faz o app voltar à consulta a cada 15 s
+            # em vez de achar que o tempo real está ativo e consultar só a cada 5 min.
+            await websocket.close(code=1013, reason="Tempo real indisponível no momento.")
+            return
         header = websocket.headers.get("authorization", "")
         bearer = header[7:] if header.lower().startswith("bearer ") else None
         try:

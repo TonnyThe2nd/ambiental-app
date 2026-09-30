@@ -28,17 +28,21 @@ from .routing.presentation.router import create_routing_router
 from .realtime.infrastructure.event_listener import RealtimeEventListener
 from .realtime.presentation.router import create_realtime_router
 from .shared.infrastructure.cache import cache
+from .shared.infrastructure.embedded_workers import EmbeddedWorkers
 
 realtime_listener = RealtimeEventListener(hub, cache)
+embedded_workers = EmbeddedWorkers()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     async with lifespan_pool():
         realtime_listener.start()
+        embedded_workers.start()
         try:
             yield
         finally:
+            await embedded_workers.stop()
             await realtime_listener.stop()
             await cache.close()
 
@@ -64,7 +68,7 @@ def create_app() -> FastAPI:
     application.include_router(create_incidents_router(
         CreateIncident(incidents), ListIncidents(incidents, cache), ValidateIncident(incidents),
         ReviewIncident(incidents), ListHeatmap(incidents, cache), IncidentPhotos(incidents)))
-    application.include_router(create_realtime_router(hub))
+    application.include_router(create_realtime_router(hub, available=lambda: realtime_listener.connected))
     application.include_router(create_routing_router(PostgresRouteRepository()))
     application.include_router(create_monitoring_router(GetSystemHealth(PostgresHealthCheck(), RabbitMqHealthCheck()), SaveObservation(observations), GetObservationHistory(observations)))
     application.include_router(create_operations_router(OperationsUseCases(operations)))

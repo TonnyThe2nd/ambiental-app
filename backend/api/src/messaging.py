@@ -46,6 +46,11 @@ RETRY_ROUTING_KEY = "incident.created.retry.v1"
 # tempo real) só interessam a quem estiver conectado e não podem travar a outbox.
 DURABLE_EVENT_TYPES = frozenset({ROUTING_KEY})
 REALTIME_BINDING = "incident.#"
+# quorum (padrão, replicada via Raft) ou classic — planos compartilhados/gratuitos de
+# RabbitMQ gerenciado (ex.: CloudAMQP Little Lemur) podem não aceitar filas quorum.
+QUEUE_TYPE = os.getenv("RABBITMQ_QUEUE_TYPE", "quorum").strip().lower()
+if QUEUE_TYPE not in {"quorum", "classic"}:
+    raise RuntimeError("RABBITMQ_QUEUE_TYPE deve ser 'quorum' ou 'classic'.")
 
 
 def event_headers(payload: dict) -> dict:
@@ -74,16 +79,16 @@ async def declare_topology(channel: AbstractRobustChannel) -> None:
     queue = await channel.declare_queue(
         INCIDENT_QUEUE,
         durable=True,
-        arguments={"x-queue-type": "quorum", "x-dead-letter-exchange": RETRY_EXCHANGE, "x-dead-letter-routing-key": RETRY_ROUTING_KEY},
+        arguments={"x-queue-type": QUEUE_TYPE, "x-dead-letter-exchange": RETRY_EXCHANGE, "x-dead-letter-routing-key": RETRY_ROUTING_KEY},
     )
     await queue.bind(events, ROUTING_KEY)
     retry_queue = await channel.declare_queue(
         RETRY_QUEUE,
         durable=True,
-        arguments={"x-queue-type": "quorum", "x-message-ttl": 5000, "x-dead-letter-exchange": EVENT_EXCHANGE, "x-dead-letter-routing-key": ROUTING_KEY},
+        arguments={"x-queue-type": QUEUE_TYPE, "x-message-ttl": 5000, "x-dead-letter-exchange": EVENT_EXCHANGE, "x-dead-letter-routing-key": ROUTING_KEY},
     )
     await retry_queue.bind(retry, RETRY_ROUTING_KEY)
-    dead_queue = await channel.declare_queue(DEAD_QUEUE, durable=True, arguments={"x-queue-type": "quorum"})
+    dead_queue = await channel.declare_queue(DEAD_QUEUE, durable=True, arguments={"x-queue-type": QUEUE_TYPE})
     await dead_queue.bind(dead, ROUTING_KEY)
 
 
