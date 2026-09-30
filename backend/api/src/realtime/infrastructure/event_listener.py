@@ -21,6 +21,7 @@ class RealtimeEventListener:
         self._initial_retry = retry_seconds
         self._task: asyncio.Task | None = None
         self._connection = None
+        self.connected = False
 
     @staticmethod
     def enabled() -> bool:
@@ -47,6 +48,7 @@ class RealtimeEventListener:
                 queue = await channel.declare_queue(exclusive=True, auto_delete=True)
                 await queue.bind(exchange, REALTIME_BINDING)
                 logger.info("Tempo real: assinando %s em %s (%s)", REALTIME_BINDING, EVENT_EXCHANGE, address)
+                self.connected = True
                 self._retry = self._initial_retry
                 async with queue.iterator() as messages:
                     async for message in messages:
@@ -62,6 +64,7 @@ class RealtimeEventListener:
                 await asyncio.sleep(self._retry)
                 self._retry = min(self._retry * 2, self.MAX_RETRY_SECONDS)
             finally:
+                self.connected = False
                 if self._connection is not None:
                     await self._connection.close()
                     self._connection = None

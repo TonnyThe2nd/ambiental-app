@@ -78,17 +78,22 @@ async def publish_batch() -> int:
     return published
 
 
+async def run_loop() -> None:
+    """Laço do publicador; supõe o pool do banco já aberto (processo próprio ou API)."""
+    await publisher.connect()
+    try:
+        while True:
+            count = await publish_batch()
+            if count:
+                logger.info("Outbox: %s evento(s) confirmado(s) pelo broker", count)
+            await asyncio.sleep(POLL_SECONDS)
+    finally:
+        await publisher.close()
+
+
 async def run() -> None:
     async with lifespan_pool():
-        await publisher.connect()
-        try:
-            while True:
-                count = await publish_batch()
-                if count:
-                    logger.info("Outbox: %s evento(s) confirmado(s) pelo broker", count)
-                await asyncio.sleep(POLL_SECONDS)
-        finally:
-            await publisher.close()
+        await run_loop()
 
 
 if __name__ == "__main__":
