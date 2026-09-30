@@ -1,7 +1,7 @@
 {
-  "version": "1.0.8",
-  "versionCode": 8,
-  "apkUrl": "https://github.com/TonnyThe2nd/ambiental-app/releases/download/v1.0.8/urbaneye-v1.0.8.apk",
-  "sha256": "895635d091d49add2fe8139ad1203be6bc0115125bad3a40cf94dae291259bca",
+  "version": "1.0.9",
+  "versionCode": 9,
+  "apkUrl": "https://github.com/TonnyThe2nd/ambiental-app/releases/download/v1.0.9/urbaneye-v1.0.9.apk",
+  "sha256": "1219af479fe2308145fef17b2da9a0b0cee2a5c8febb92a1173d326f61569624",
   "mandatory": false
 }
