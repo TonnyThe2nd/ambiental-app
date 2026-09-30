@@ -23,6 +23,8 @@ from .operations.application.use_cases import OperationsUseCases
 from .operations.infrastructure.postgres_operations_repository import PostgresOperationsRepository
 from .operations.presentation.router import create_operations_router
 from .realtime.domain.hub import hub
+from .routing.infrastructure.postgres_route_repository import PostgresRouteRepository
+from .routing.presentation.router import create_routing_router
 from .realtime.infrastructure.event_listener import RealtimeEventListener
 from .realtime.presentation.router import create_realtime_router
 from .shared.infrastructure.cache import cache
@@ -63,6 +65,7 @@ def create_app() -> FastAPI:
         CreateIncident(incidents), ListIncidents(incidents, cache), ValidateIncident(incidents),
         ReviewIncident(incidents), ListHeatmap(incidents, cache), IncidentPhotos(incidents)))
     application.include_router(create_realtime_router(hub))
+    application.include_router(create_routing_router(PostgresRouteRepository()))
     application.include_router(create_monitoring_router(GetSystemHealth(PostgresHealthCheck(), RabbitMqHealthCheck()), SaveObservation(observations), GetObservationHistory(observations)))
     application.include_router(create_operations_router(OperationsUseCases(operations)))
 

@@ -10,6 +10,30 @@ INCIDENT_CATEGORIES: frozenset[str] = frozenset({
     "lixo", "ruido", "erosao", "arvore_caida", "animal_morto", "outro",
 })
 
+CATEGORY_LABELS: dict[str, str] = {
+    "alagamento": "alagamento",
+    "poluicao": "poluição",
+    "lixo": "descarte de lixo",
+    "queimada": "incêndio ou queimada",
+    "incendio": "incêndio ou queimada",
+    "desmatamento": "desmatamento",
+    "esgoto": "esgoto a céu aberto",
+    "ruido": "poluição sonora",
+    "erosao": "erosão ou deslizamento",
+    "arvore_caida": "árvore caída",
+    "animal_morto": "animal morto em via pública",
+}
+
+
+def category_label(category: str) -> str:
+    return CATEGORY_LABELS.get(category, "ocorrência ambiental")
+
+
+def category_label_sql(column: str) -> str:
+    """Expressão SQL equivalente a ``category_label`` (mensagens montadas no banco)."""
+    cases = " ".join(f"WHEN '{key}' THEN '{label}'" for key, label in CATEGORY_LABELS.items())
+    return f"(CASE {column} {cases} ELSE 'ocorrência ambiental' END)"
+
 
 def normalize_category(value: str) -> str:
     normalized = value.strip().lower()

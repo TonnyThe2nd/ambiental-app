@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from ...auth import CurrentUser
 from ...models import CommunityValidationInput, IncidentAccepted, IncidentInput, IncidentOutput, ReporterPublic, ReviewInput
 from ...producer import DuplicateIncidentError
+from ...shared.domain import geohash
+from ..domain.impact import impact_radius_m
 from ..application.ports import HeatmapFilters, IncidentFilters
 from ..application.use_cases import CreateIncidentUseCase, IncidentPhotos, ListHeatmap, ListIncidentsUseCase, ReviewIncidentUseCase, ValidateIncidentUseCase
 
@@ -16,7 +18,7 @@ def create_incidents_router(create: CreateIncidentUseCase, listing: ListIncident
         try: _, assessment = await create.execute(data, user.id)
         except DuplicateIncidentError as e: raise HTTPException(409, "Incidente duplicado.") from e
         except Exception as e: raise HTTPException(500, "Não foi possível persistir o incidente.") from e
-        return IncidentAccepted(**data.model_dump(), reported_by=ReporterPublic(id=user.id,name=user.name,trust_score=user.trust_score), severity=assessment.severity, risk_score=assessment.score, health_impact=assessment.health_impact, ecosystem_impact=assessment.ecosystem_impact, community_impact=assessment.community_impact)
+        return IncidentAccepted(**data.model_dump(), reported_by=ReporterPublic(id=user.id,name=user.name,trust_score=user.trust_score), severity=assessment.severity, risk_score=assessment.score, health_impact=assessment.health_impact, ecosystem_impact=assessment.ecosystem_impact, community_impact=assessment.community_impact, geohash=geohash.encode(data.latitude, data.longitude), impact_radius_m=impact_radius_m(data.category, assessment.severity))
 
     @router.get("", response_model=list[IncidentOutput])
     async def list_all(_: CurrentUser, updated_since: datetime|None=None, updated_after_id: UUID|None=None, categories:list[str]=Query(default=[]), severities:list[str]=Query(default=[]), active_only:bool=True, limit:int=Query(500,ge=1,le=2000), latitude:float|None=Query(None,ge=-90,le=90), longitude:float|None=Query(None,ge=-180,le=180), radius_m:int=Query(50000,ge=1000,le=100000)) -> list[IncidentOutput]:

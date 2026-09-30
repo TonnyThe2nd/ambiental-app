@@ -44,7 +44,7 @@ async def login_user(data: LoginInput) -> AuthResponse:
 
 
 async def update_user_location(user_id, data: UserLocationInput) -> None:
-    await _profiles.update_location(user_id, **data.model_dump())
+    await _profiles.update_location(user_id, **data.model_dump(exclude={"local_geofencing"}))
 
 
 async def update_alert_preferences(user_id, data: AlertPreferencesInput) -> None:

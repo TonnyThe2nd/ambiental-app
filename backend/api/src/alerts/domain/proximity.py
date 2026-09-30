@@ -8,6 +8,9 @@ class NearbyIncident:
     category: str
     severity: str
     distance_km: float
+    latitude: float | None = None
+    longitude: float | None = None
+    impact_radius_m: int | None = None
 
 
 @dataclass(frozen=True)

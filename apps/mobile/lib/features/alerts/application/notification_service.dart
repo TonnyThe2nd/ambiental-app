@@ -8,8 +8,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../auth/application/auth_service.dart';
 import '../../../core/device/location_service.dart';
+import '../../incident/presentation/models/incident_category_visual.dart';
 import '../domain/notification_gateway.dart';
 import '../domain/app_notification.dart';
+import '../domain/proximity_zone.dart';
+import 'proximity_monitor.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -82,6 +85,49 @@ class SystemNotificationService {
         ?.requestNotificationsPermission();
   }
 
+  /// Notificação do sistema ao entrar numa área de ocorrência (app aberto, em
+  /// segundo plano ou fechado — chamada também pela tarefa do WorkManager).
+  static Future<void> showProximity(ZoneEntry entry) async {
+    await initialize();
+    final zone = entry.zone;
+    final label = incidentCategoryVisual(zone.category).label;
+    final severity = switch (zone.severity) {
+      'critico' => 'crítica',
+      'leve' => 'leve',
+      _ => 'moderada',
+    };
+    final distance = entry.distanceMeters < 1000
+        ? '${entry.distanceMeters.round()} m'
+        : '${(entry.distanceMeters / 1000).toStringAsFixed(1)} km';
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
+        importance: Importance.max,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.navigation,
+        styleInformation: BigTextStyleInformation(
+          'A ocorrência está a $distance de você (área de ${zone.radiusMeters} m). '
+          'Redobre a atenção ou procure outro caminho.',
+        ),
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      ),
+    );
+    await _plugin.show(
+      zone.incidentId.hashCode & 0x7fffffff,
+      'Você entrou em uma área de risco',
+      '$label ($severity) a $distance',
+      details,
+      payload: 'incident:${zone.incidentId}',
+    );
+  }
+
   static Future<void> show(RemoteMessage message) async {
     await initialize();
     final content = NotificationContent.fromMessage(message);
@@ -112,13 +158,16 @@ const notificationFallbackPollingInterval = Duration(minutes: 5);
 const locationFallbackPollingInterval = Duration(minutes: 5);
 
 class NotificationService extends ChangeNotifier {
-  NotificationService(this._auth, this._location, this._gateway) {
+  NotificationService(this._auth, this._location, this._gateway, {this.proximity}) {
     _auth.addListener(_handleAuthChange);
   }
 
   final AuthService _auth;
   final LocationService _location;
   final NotificationGateway _gateway;
+
+  /// Geofencing local. Quando presente, assume o envio de posição ao servidor.
+  final ProximityMonitor? proximity;
   final _seenIds = <String>{};
   final _notifications = <AppNotification>[];
   Timer? _timer;
@@ -174,10 +223,19 @@ class NotificationService extends ChangeNotifier {
     }
   }
 
-  Future<void> checkProximity({bool background = false}) =>
-      _sendPosition(force: true, background: background);
+  Future<void> checkProximity({bool background = false}) {
+    final monitor = proximity;
+    if (monitor != null) return monitor.backgroundCheck();
+    return _sendPosition(force: true, background: background);
+  }
 
   Future<void> _sendPosition({String? token, bool force = false, bool background = false}) async {
+    final monitor = proximity;
+    if (monitor != null) {
+      await monitor.checkNow(fcmToken: token);
+      unawaited(_poll());
+      return;
+    }
     try {
       final position = await _location.current(background: background);
       final previous = _lastSentLocation;
@@ -209,6 +267,12 @@ class NotificationService extends ChangeNotifier {
     if (!_auth.isAuthenticated || _timer != null) return;
     _poll();
     _timer = Timer.periodic(notificationFallbackPollingInterval, (_) => _poll());
+    final monitor = proximity;
+    if (monitor != null) {
+      // Rastreamento contínuo (também em segundo plano) com avaliação local das áreas.
+      unawaited(monitor.start());
+      return;
+    }
     unawaited(_sendPosition(force: true));
     _locationTimer = Timer.periodic(
       locationFallbackPollingInterval,
@@ -217,6 +281,7 @@ class NotificationService extends ChangeNotifier {
   }
 
   void stop({bool clear = false}) {
+    unawaited(proximity?.stop());
     _timer?.cancel();
     _timer = null;
     _locationTimer?.cancel();

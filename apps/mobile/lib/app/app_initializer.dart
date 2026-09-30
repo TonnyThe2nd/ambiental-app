@@ -14,10 +14,14 @@ import '../features/auth/infrastructure/http_auth_gateway.dart';
 import '../features/auth/infrastructure/secure_auth_session_store.dart';
 import '../core/device/location_service.dart';
 import '../features/alerts/application/notification_service.dart';
+import '../features/alerts/application/proximity_monitor.dart';
+import '../features/alerts/infrastructure/hive_proximity_store.dart';
 import '../features/alerts/infrastructure/http_notification_gateway.dart';
 import '../features/incident/infrastructure/remote/http_incident_remote_data_source.dart';
 import '../features/incident/application/sync_incidents_service.dart';
 import '../features/incident/infrastructure/sync/background_sync.dart';
+import '../features/map/infrastructure/map_layers_service.dart';
+import '../features/routing/infrastructure/route_planner.dart';
 import '../features/weather/data/environmental_context_service.dart';
 
 class AppDependencies {
@@ -28,6 +32,9 @@ class AppDependencies {
     required this.sync,
     required this.auth,
     required this.notifications,
+    required this.proximity,
+    required this.mapLayers,
+    required this.routePlanner,
   });
   final IncidentRepository repository;
   final CameraService camera;
@@ -35,6 +42,9 @@ class AppDependencies {
   final SyncIncidentsService sync;
   final AuthService auth;
   final NotificationService notifications;
+  final ProximityMonitor proximity;
+  final MapLayersService mapLayers;
+  final RoutePlanner routePlanner;
 }
 
 class AppInitializer {
@@ -60,10 +70,20 @@ class AppInitializer {
     final auth = AuthService(HttpAuthGateway(), SecureAuthSessionStore());
     await auth.restoreSession();
     final location = GeolocatorLocationService();
+    final notificationGateway = HttpNotificationGateway(auth);
+    final proximity = ProximityMonitor(
+      auth: auth,
+      location: location,
+      tracker: GeolocatorLocationTracker(),
+      gateway: notificationGateway,
+      store: await HiveProximityStore.open(),
+      notifier: SystemNotificationService.showProximity,
+    );
     final notifications = NotificationService(
       auth,
       location,
-      HttpNotificationGateway(auth),
+      notificationGateway,
+      proximity: proximity,
     );
     final remote = HttpIncidentRemoteDataSource(
       auth,
@@ -77,10 +97,14 @@ class AppInitializer {
       sync: SyncIncidentsService(repository, auth),
       auth: auth,
       notifications: notifications,
+      proximity: proximity,
+      mapLayers: MapLayersService(auth),
+      routePlanner: RoutePlanner(auth),
     );
     if (registerBackground) {
       await BackgroundSync.initialize();
       await BackgroundSync.schedule(attempts: 0);
+      await BackgroundSync.scheduleProximityChecks();
       unawaited(notifications.registerPushToken());
     }
     return dependencies;

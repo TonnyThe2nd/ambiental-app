@@ -40,12 +40,12 @@ Eventos publicados: `incident.created.v1`, `incident.validation.updated.v1`,
 
 | Funcionalidade | Status | Observação |
 |---|---|---|
-| Mapa interativo e camadas | Parcial | Marcadores por severidade, filtros e camada de densidade; o backend já expõe o mapa de calor. Camadas de AQI e ilhas de calor no mapa ainda não existem no app. |
+| Mapa interativo e camadas | Implementado | Camadas liga/desliga: ocorrências, áreas de risco (raio de impacto), densidade, mapa de calor do servidor (GeoHash), qualidade do ar (US AQI) e temperatura com destaque de ilhas de calor (Open-Meteo); atalhos "Alagamentos" e "Rotas obstruídas". |
 | Relato colaborativo inteligente | Implementado | Foto, categoria validada no servidor, GPS e metadados ambientais (chuva, AQI, temperatura via Open-Meteo) enviados no relato. |
-| Alertas de proximidade e roteamento | Parcial | Raio, entrada em área e corredor de rota no backend; o app ainda não envia a rota (`route`) em `PUT /auth/me/location`. |
+| Alertas de proximidade e roteamento | Implementado | Notificação do sistema ao entrar na área de uma ocorrência com o app aberto, minimizado ou fechado; roteamento preventivo com rotas alternativas avaliadas no PostGIS e alerta de novas ocorrências no corredor da rota. |
 | Offline-first | Implementado | Fila Hive, WorkManager, chave de idempotência SHA-256. |
 
-## Correções feitas nesta revisão
+## Correções feitas nas revisões
 
 - **Eventos de validação travavam a outbox.** `incident.validation.updated.v1` era publicado com
   `mandatory=True` sem nenhuma fila ligada; o broker devolvia a mensagem e a outbox reagendava
@@ -65,3 +65,49 @@ Eventos publicados: `incident.created.v1`, `incident.validation.updated.v1`,
 - **Intervalo de fallback do feed não era usado.** O mapa consultava a API a cada 15 s mesmo
   com a constante de fallback de 5 minutos definida; agora o tempo real dispara as atualizações
   e a consulta periódica só vale como fallback.
+
+## Alerta de proximidade (entrada em área de ocorrência)
+
+Cada ocorrência tem uma **área de impacto** (`impact_radius_m`), que depende da categoria e
+da gravidade: um alagamento moderado ocupa 400 m, uma queimada crítica, 3 km (tabela em
+`incidents/domain/impact.py`, espelhada em `incident_impact.dart`). Estar "numa área de
+ocorrência" significa estar dentro desse raio, e não dentro do raio de alerta do usuário (10 km).
+
+| Situação do app | Como detecta | Quem notifica |
+|---|---|---|
+| Aberto ou minimizado | Rastreamento contínuo do GPS (serviço em primeiro plano no Android, com notificação fixa "Monitorando áreas de risco"; atualização em segundo plano no iOS) | O próprio app, com notificação do sistema |
+| Fechado (Android) | Tarefa periódica do WorkManager a cada 15 min, com a permissão "Permitir o tempo todo" | O próprio app, a partir do isolate em segundo plano |
+| Sem internet | Áreas em cache no Hive (raio de 20 km, renovado a cada 10 min ou 5 km de deslocamento) | O próprio app |
+| Ocorrência nova ainda fora do cache | O servidor avalia a posição enviada (`PUT /auth/me/location`) e devolve as entradas | O app, com os dados devolvidos pelo servidor |
+
+A avaliação só notifica na **transição de fora para dentro**, com margem de 50 m para sair
+(evita repetição com o GPS oscilando na borda) e no máximo um aviso por ocorrência a cada
+6 horas. Como o app notifica, ele envia `localGeofencing: true` e o servidor registra o
+histórico sem mandar push, evitando notificação duplicada.
+
+Limites conhecidos: com o app fechado, o Android executa tarefas periódicas no mínimo a cada
+15 minutos e pode adiá-las em modo de economia de bateria; no iOS o alerta com o app
+encerrado pelo usuário depende do push do servidor.
+
+## Roteamento preventivo
+
+1. No mapa, tocar e segurar sobre o destino e escolher "A pé" ou "Carro".
+2. O app busca até 3 rotas alternativas no OSRM (`routing.openstreetmap.de`, configurável por
+   `--dart-define=ROUTING_BASE_URL=...`).
+3. `POST /routes/assess` cruza cada rota com as ocorrências ativas no PostGIS
+   (`ST_DWithin` entre a linha da rota e a área de impacto) e recomenda a de menor risco.
+   Alagamento, árvore caída, erosão e fogo pesam o dobro, e uma ocorrência crítica dessas
+   marca a rota como bloqueada.
+4. "Iniciar rota e receber alertas" envia a rota em `PUT /auth/me/location`; por 2 horas o
+   worker avisa sobre novas ocorrências no corredor da rota.
+
+### Segunda revisão (mapa e alertas)
+
+- **Alerta com o app em segundo plano quase nunca funcionava.** A permissão de localização em
+  segundo plano era pedida dentro da própria tarefa em segundo plano, onde o Android não
+  consegue mostrar o pedido; a checagem falhava em silêncio. Agora a permissão é pedida na
+  tela, com explicação e atalho para as configurações.
+- **"Entrar na área" usava o raio de alerta do usuário (10 km)**, então qualquer ocorrência da
+  cidade contava como "você está na área". Agora usa a área de impacto da ocorrência.
+- **O mapa recriava o feed e a conexão a cada filtro ou arrasto**, porque o stream era criado
+  dentro do `build`. Agora só é refeito quando o centro se desloca mais de 5 km.

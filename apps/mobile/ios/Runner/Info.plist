@@ -5,6 +5,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>urbaneye.backgroundSync</string>
+		<string>urbaneye.proximityCheck</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
@@ -16,7 +17,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O UrbanEye usa sua localização para avisar sobre registros ambientais próximos.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>O UrbanEye pode verificar sua localização em segundo plano para emitir alertas ambientais próximos.</string>
+	<string>O UrbanEye acompanha sua localização em segundo plano para avisar quando você entrar em uma área com ocorrência ambiental, mesmo com o app fechado.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

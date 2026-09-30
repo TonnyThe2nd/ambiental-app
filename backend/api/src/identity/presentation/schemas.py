@@ -61,3 +61,5 @@ class UserLocationInput(BaseModel):
     route: list[tuple[float, float]] | None = Field(default=None, max_length=500)
     route_alert_radius_meters: int = Field(default=750, ge=100, le=5000, validation_alias="routeAlertRadiusMeters")
     route_ttl_minutes: int = Field(default=120, ge=5, le=1440, validation_alias="routeTtlMinutes")
+    # O app avalia a entrada em área localmente e mostra a notificação do sistema.
+    local_geofencing: bool = Field(default=False, validation_alias="localGeofencing")
