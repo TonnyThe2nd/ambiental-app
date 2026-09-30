@@ -25,10 +25,9 @@ class HttpIncidentRemoteDataSource {
     this._auth, {
     http.Client? client,
     String? baseUrl,
-    EnvironmentalContextProvider? environment,
+    this._environment,
     this.realtimeEnabled = true,
   }) : _client = client ?? http.Client(),
-       _environment = environment,
        _baseUri = Uri.parse(
          baseUrl ??
              const String.fromEnvironment(
