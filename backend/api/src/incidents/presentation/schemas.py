@@ -1,6 +1,8 @@
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from ..domain.categories import normalize_category, normalize_environmental_context
 
 class ReporterPublic(BaseModel):
     """Autor visível no feed: sem e-mail, que exporia o denunciante a retaliação."""
@@ -19,7 +21,29 @@ class IncidentInput(BaseModel):
     environmental_context: dict = Field(default_factory=dict, validation_alias="environmentalContext", serialization_alias="environmentalContext")
     idempotency_key: str = Field(validation_alias="idempotencyKey", serialization_alias="idempotencyKey", min_length=32, max_length=64, pattern=r"^[a-fA-F0-9]+$")
 
+    @field_validator("category")
+    @classmethod
+    def _known_category(cls, value: str) -> str:
+        return normalize_category(value)
+
+    @field_validator("environmental_context")
+    @classmethod
+    def _valid_context(cls, value: dict) -> dict:
+        return normalize_environmental_context(value)
+
 class IncidentOutput(IncidentInput):
+    """Leitura: não revalida catálogo/contexto, para não quebrar o feed com dados antigos."""
+    geohash: str | None = None
+
+    @field_validator("category")
+    @classmethod
+    def _known_category(cls, value: str) -> str:
+        return value
+
+    @field_validator("environmental_context")
+    @classmethod
+    def _valid_context(cls, value: dict) -> dict:
+        return value
     idempotency_key: str | None = Field(default=None, serialization_alias="idempotencyKey")
     reported_by: ReporterPublic | None = Field(default=None, serialization_alias="reportedBy")
     severity: str = "moderado"

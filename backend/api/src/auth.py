@@ -83,5 +83,12 @@ async def get_current_user(token: Annotated[str, Depends(get_access_token)]) -> 
         raise _unauthorized() from error
 
 
+async def authenticate_token(token: str) -> UserOutput:
+    """Valida um JWT fora do fluxo HTTP (ex.: handshake do WebSocket)."""
+    if not token:
+        raise EntityNotFound("missing_token")
+    return _output(await _authentication.authenticate(token))
+
+
 AccessToken = Annotated[str, Depends(get_access_token)]
 CurrentUser = Annotated[UserOutput, Depends(get_current_user)]
