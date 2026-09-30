@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from .database import lifespan_pool, pool
 from .geolocation_repository import NearbyUser, find_users_within_radius
 from .messaging import DEAD_EXCHANGE, INCIDENT_QUEUE, RABBITMQ_URL, ROUTING_KEY, declare_topology
+from .incidents.domain.categories import category_label
 from .models import IncidentOutput as IncidentInput  # leitura tolerante a eventos antigos
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -25,22 +26,6 @@ FCM_ENABLED = os.getenv("FCM_ENABLED", "false").lower() in {"1", "true", "yes"}
 def retry_count(message: AbstractIncomingMessage) -> int:
     deaths = message.headers.get("x-death", []) if message.headers else []
     return sum(int(item.get("count", 0)) for item in deaths if item.get("queue") == INCIDENT_QUEUE)
-
-
-def category_label(category: str) -> str:
-    return {
-        "alagamento": "alagamento",
-        "poluicao": "poluição",
-        "lixo": "descarte de lixo",
-        "queimada": "incêndio ou queimada",
-        "incendio": "incêndio ou queimada",
-        "desmatamento": "desmatamento",
-        "esgoto": "esgoto a céu aberto",
-        "ruido": "poluição sonora",
-        "erosao": "erosão ou deslizamento",
-        "arvore_caida": "árvore caída",
-        "animal_morto": "animal morto em via pública",
-    }.get(category, "ocorrência ambiental")
 
 
 async def persist_notifications(incident: IncidentInput, users: list[NearbyUser]) -> None:

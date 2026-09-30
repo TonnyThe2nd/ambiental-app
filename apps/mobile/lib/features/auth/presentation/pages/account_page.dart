@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../application/auth_service.dart';
 import '../../../alerts/application/notification_service.dart';
+import '../../../alerts/presentation/proximity_settings.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({
@@ -138,6 +139,10 @@ class AccountPage extends StatelessWidget {
                 ),
               ),
             ),
+            if (notifications.proximity case final monitor?) ...[
+              const SizedBox(height: 20),
+              Card(child: ProximitySettingsTile(monitor: monitor)),
+            ],
             const SizedBox(height: 20),
             _NotificationsSection(notifications: notifications),
             const SizedBox(height: 20),

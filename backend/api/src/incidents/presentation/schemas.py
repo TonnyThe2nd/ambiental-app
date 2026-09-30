@@ -34,6 +34,7 @@ class IncidentInput(BaseModel):
 class IncidentOutput(IncidentInput):
     """Leitura: não revalida catálogo/contexto, para não quebrar o feed com dados antigos."""
     geohash: str | None = None
+    impact_radius_m: int | None = Field(default=None, serialization_alias="impactRadiusM")
 
     @field_validator("category")
     @classmethod

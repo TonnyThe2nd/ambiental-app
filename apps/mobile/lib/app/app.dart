@@ -142,6 +142,9 @@ class _HomeState extends State<_Home> {
       MapPage(
         repository: widget.dependencies.repository,
         locationService: widget.dependencies.location,
+        layers: widget.dependencies.mapLayers,
+        routePlanner: widget.dependencies.routePlanner,
+        proximity: widget.dependencies.proximity,
       ),
       WeatherPage(locationService: widget.dependencies.location),
       AccountPage(

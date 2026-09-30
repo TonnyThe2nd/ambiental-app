@@ -53,6 +53,8 @@ manifesto após deixar de usar HTTP local.
 - `GET /incidents/heatmap`: mapa de calor por quadrante GeoHash (cache Redis).
 - `PUT|GET /incidents/{id}/photo`: envio e leitura da foto do relato.
 - `WS /ws/incidents`: eventos de ocorrência em tempo real por quadrante GeoHash.
+- `POST /routes/assess`: risco de rotas candidatas e rota recomendada (roteamento preventivo).
+- `PUT /auth/me/location`: agora devolve `{"alerts": [...]}` com as áreas de ocorrência em que o usuário entrou.
 
 O Hive continua sendo a fila local offline; o serviço de sincronização tenta
 enviar pendências quando há conexão.

@@ -26,7 +26,7 @@ class PostgresIncidentRepository:
             result = await connection.execute(
                 """SELECT i.id, i.category, i.latitude, i.longitude, i.occurred_at AS created_at,
                    i.image_url, i.severity, i.risk_score, i.health_impact, i.ecosystem_impact,
-                   i.community_impact, i.workflow_status, i.environmental_context, i.updated_at, i.geohash,
+                   i.community_impact, i.workflow_status, i.environmental_context, i.updated_at, i.geohash, i.impact_radius_m,
                    i.confidence_score, i.priority_score, i.confirmation_count, i.rejection_count,
                    i.complement_count, u.id AS user_id, u.name AS user_name,
                    u.trust_score AS user_trust_score FROM incidents i LEFT JOIN users u ON u.id=i.reported_by
