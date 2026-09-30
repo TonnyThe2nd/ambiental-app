@@ -1,20 +1,34 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
+import '../../../../core/geo/geohash.dart';
 import '../../domain/entities/incident.dart';
 import '../../../auth/application/auth_service.dart';
+import '../../../weather/data/environmental_context_service.dart';
 
 const incidentFeedFallbackPollingInterval = Duration(minutes: 5);
+
+/// Consulta incremental enquanto o WebSocket está fora do ar.
+const incidentFeedPollingInterval = Duration(seconds: 15);
+
+/// Com o tempo real conectado, a consulta periódica vira só o fallback de segurança
+/// (eventos perdidos numa reconexão são recuperados pelo cursor ``updated_since``).
+const incidentFeedRealtimeSafetyInterval = incidentFeedFallbackPollingInterval;
 
 class HttpIncidentRemoteDataSource {
   HttpIncidentRemoteDataSource(
     this._auth, {
     http.Client? client,
     String? baseUrl,
+    EnvironmentalContextProvider? environment,
+    this.realtimeEnabled = true,
   }) : _client = client ?? http.Client(),
+       _environment = environment,
        _baseUri = Uri.parse(
          baseUrl ??
              const String.fromEnvironment(
@@ -26,10 +40,15 @@ class HttpIncidentRemoteDataSource {
   final http.Client _client;
   final AuthService _auth;
   final Uri _baseUri;
+  final EnvironmentalContextProvider? _environment;
+  final bool realtimeEnabled;
 
   Uri get _incidentsUri => _baseUri.resolve('/incidents');
 
   Future<Incident> upload(Incident incident) async {
+    final environmentalContext =
+        await _environment?.contextFor(incident.latitude, incident.longitude) ??
+        const <String, Object>{};
     final response = await _client.post(
       _incidentsUri,
       headers: _auth.authorizedHeaders(json: true),
@@ -41,15 +60,53 @@ class HttpIncidentRemoteDataSource {
         'createdAt': incident.createdAt.toUtc().toIso8601String(),
         'imageUrl': incident.imageUrl,
         'idempotencyKey': incidentIdempotencyKey(incident),
+        if (environmentalContext.isNotEmpty) 'environmentalContext': environmentalContext,
       }),
     );
     if (response.statusCode == 409) {
-      return incident.copyWith(status: IncidentStatus.synced);
+      // Já aceito numa tentativa anterior: garante que a foto também chegou.
+      final photoUrl = await uploadPhoto(incident);
+      return incident.copyWith(status: IncidentStatus.synced, imageUrl: photoUrl ?? incident.imageUrl);
     }
     _ensureSuccess(response, expectedStatus: 202);
-    return _fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    final accepted = _fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    final photoUrl = await uploadPhoto(incident);
+    return photoUrl == null ? accepted : accepted.copyWith(imageUrl: photoUrl);
   }
 
+  /// Envia a foto capturada (antes ela ficava só no aparelho).
+  ///
+  /// Falha de rede lança erro para o relato voltar à fila e ser reenviado; a API
+  /// responde 409 ao relato repetido e a foto é enviada de novo (operação idempotente).
+  /// Foto recusada pelo servidor (tamanho/formato) não trava a fila.
+  Future<String?> uploadPhoto(Incident incident) async {
+    if (kIsWeb || incident.imagePath.isEmpty) return null;
+    final file = File(incident.imagePath);
+    if (!await file.exists()) return null;
+    final bytes = await file.readAsBytes();
+    final lower = incident.imagePath.toLowerCase();
+    final contentType = lower.endsWith('.png')
+        ? 'image/png'
+        : lower.endsWith('.webp')
+        ? 'image/webp'
+        : 'image/jpeg';
+    final response = await _client.put(
+      _baseUri.resolve('/incidents/${incident.id}/photo'),
+      headers: {..._auth.authorizedHeaders(), 'Content-Type': contentType},
+      body: bytes,
+    );
+    if (response.statusCode == 413 || response.statusCode == 415) {
+      debugPrint('Foto do relato ${incident.id} recusada (${response.statusCode}).');
+      return null;
+    }
+    _ensureSuccess(response, expectedStatus: 204);
+    return '/incidents/${incident.id}/photo';
+  }
+
+  /// Feed do mapa: snapshot inicial + deltas pelo cursor ``updated_since``.
+  ///
+  /// Os deltas são disparados pelo WebSocket de tempo real (eventos do barramento
+  /// filtrados por quadrante GeoHash). Sem conexão, volta à consulta periódica.
   Stream<List<Incident>> watch({
     double? latitude,
     double? longitude,
@@ -73,23 +130,58 @@ class HttpIncidentRemoteDataSource {
       cursorId = last.isEmpty ? null : last.last.id;
     }
     yield cache.values.toList();
-    await for (final _ in Stream<void>.periodic(const Duration(seconds: 15))) {
-      final changes = await getAll(
-        updatedSince: cursor,
-        updatedAfterId: cursorId,
-        includeInactive: true,
-        latitude: latitude,
-        longitude: longitude,
-        radiusMeters: radiusMeters,
-      );
-      for (final item in changes) {
-        cache[item.id] = item;
-        if (item.updatedAt != null) {
-          cursor = item.updatedAt;
-          cursorId = item.id;
-        }
+
+    final triggers = StreamController<void>();
+    final realtime = IncidentRealtimeConnection(
+      baseUri: _baseUri,
+      tokenProvider: () => _auth.token,
+      geohashes: latitude != null && longitude != null
+          ? geohashCellsAround(latitude, longitude, radiusMeters)
+          : const <String>[],
+      onEvent: () { if (!triggers.isClosed) triggers.add(null); },
+    );
+    if (realtimeEnabled && latitude != null && longitude != null) realtime.start();
+    var lastFetch = DateTime.now();
+    final ticker = Timer.periodic(incidentFeedPollingInterval, (_) {
+      final interval = realtime.connected
+          ? incidentFeedRealtimeSafetyInterval
+          : incidentFeedPollingInterval;
+      if (DateTime.now().difference(lastFetch) >= interval && !triggers.isClosed) {
+        triggers.add(null);
       }
-      if (changes.isNotEmpty) yield cache.values.where((item) => item.isActive).toList();
+    });
+    try {
+      await for (final _ in triggers.stream) {
+        lastFetch = DateTime.now();
+        final List<Incident> changes;
+        try {
+          changes = await getAll(
+            updatedSince: cursor,
+            updatedAfterId: cursorId,
+            includeInactive: true,
+            latitude: latitude,
+            longitude: longitude,
+            radiusMeters: radiusMeters,
+          );
+        } on AuthException {
+          rethrow;
+        } catch (error) {
+          debugPrint('Falha ao atualizar o feed do mapa: $error');
+          continue;
+        }
+        for (final item in changes) {
+          cache[item.id] = item;
+          if (item.updatedAt != null) {
+            cursor = item.updatedAt;
+            cursorId = item.id;
+          }
+        }
+        if (changes.isNotEmpty) yield cache.values.where((item) => item.isActive).toList();
+      }
+    } finally {
+      ticker.cancel();
+      await realtime.stop();
+      await triggers.close();
     }
   }
 
@@ -176,3 +268,80 @@ class HttpIncidentRemoteDataSource {
 String incidentIdempotencyKey(Incident incident) => sha256
     .convert(utf8.encode('incident:${incident.id}'))
     .toString();
+
+
+/// Conexão WebSocket com ``/ws/incidents``: assina quadrantes GeoHash e avisa
+/// quando chega um evento de ocorrência. Reconecta com espera crescente.
+class IncidentRealtimeConnection {
+  IncidentRealtimeConnection({
+    required this.baseUri,
+    required this.tokenProvider,
+    required this.geohashes,
+    required this.onEvent,
+  });
+
+  final Uri baseUri;
+  final String? Function() tokenProvider;
+  final List<String> geohashes;
+  final void Function() onEvent;
+
+  WebSocket? _socket;
+  bool _running = false;
+  bool connected = false;
+  Duration _backoff = const Duration(seconds: 2);
+
+  Uri get uri => baseUri.replace(
+    scheme: baseUri.scheme == 'https' ? 'wss' : 'ws',
+    path: '/ws/incidents',
+  );
+
+  void start() {
+    if (kIsWeb || _running || geohashes.isEmpty) return;
+    _running = true;
+    unawaited(_loop());
+  }
+
+  Future<void> _loop() async {
+    while (_running) {
+      final token = tokenProvider();
+      if (token == null) return;
+      try {
+        final socket = await WebSocket.connect(
+          uri.toString(),
+          headers: {'Authorization': 'Bearer $token'},
+        ).timeout(const Duration(seconds: 10));
+        socket.pingInterval = const Duration(seconds: 30);
+        _socket = socket;
+        socket.add(jsonEncode({'action': 'subscribe', 'geohashes': geohashes}));
+        await for (final raw in socket) {
+          if (raw is! String) continue;
+          final message = jsonDecode(raw);
+          if (message is! Map<String, dynamic>) continue;
+          switch (message['type']) {
+            case 'subscribed':
+              connected = true;
+              _backoff = const Duration(seconds: 2);
+              onEvent(); // recupera o que mudou enquanto estava desconectado
+            case 'event':
+              onEvent();
+          }
+        }
+      } catch (error) {
+        debugPrint('Tempo real indisponível: $error');
+      }
+      connected = false;
+      _socket = null;
+      if (!_running) break;
+      await Future<void>.delayed(_backoff);
+      final next = _backoff * 2;
+      _backoff = next > const Duration(minutes: 1) ? const Duration(minutes: 1) : next;
+    }
+  }
+
+  Future<void> stop() async {
+    _running = false;
+    connected = false;
+    await _socket?.close();
+    _socket = null;
+  }
+}

@@ -10,6 +10,7 @@ from .messaging import ROUTING_KEY
 from .models import IncidentInput
 from .geolocation_repository import nearest_sensitive_area_criticality
 from .risk_analysis import RiskAssessment, assess_risk
+from .shared.domain import geohash
 
 logger = logging.getLogger("urbaneye.producer")
 
@@ -20,6 +21,7 @@ class DuplicateIncidentError(Exception):
 
 async def create_incident_with_outbox(incident: IncidentInput, user_id: UUID) -> tuple[UUID, RiskAssessment]:
     event_id = uuid4()
+    cell = geohash.encode(incident.latitude, incident.longitude)
     context = incident.environmental_context
     sensitive_criticality = await nearest_sensitive_area_criticality(incident.latitude, incident.longitude)
     assessment = assess_risk(
@@ -34,7 +36,7 @@ async def create_incident_with_outbox(incident: IncidentInput, user_id: UUID) ->
         "occurredAt": incident.created_at.astimezone(timezone.utc).isoformat(),
         "data": {**incident.model_dump(mode="json", by_alias=True), "reportedBy": str(user_id),
                  "severity": assessment.severity, "riskScore": assessment.score,
-                 "sensitiveAreaCriticality": sensitive_criticality},
+                 "sensitiveAreaCriticality": sensitive_criticality, "geohash": cell},
     }
     try:
         async with pool.connection() as connection:
@@ -44,15 +46,15 @@ async def create_incident_with_outbox(incident: IncidentInput, user_id: UUID) ->
                     INSERT INTO incidents
                       (id, category, latitude, longitude, location, occurred_at, image_url, reported_by,
                        idempotency_key, severity, risk_score, health_impact, ecosystem_impact,
-                       community_impact, environmental_context)
+                       community_impact, environmental_context, geohash)
                     VALUES (%s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
                     """,
                     (incident.id, incident.category, incident.latitude, incident.longitude,
                      incident.longitude, incident.latitude, incident.created_at, incident.image_url,
                      user_id, incident.idempotency_key, assessment.severity, assessment.score,
                      assessment.health_impact, assessment.ecosystem_impact, assessment.community_impact,
-                     json.dumps(context)),
+                     json.dumps(context), cell),
                 )
                 await connection.execute(
                     """INSERT INTO citizen_contributions (user_id, incident_id, contribution_type, points)

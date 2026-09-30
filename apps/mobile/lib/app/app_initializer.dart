@@ -18,6 +18,7 @@ import '../features/alerts/infrastructure/http_notification_gateway.dart';
 import '../features/incident/infrastructure/remote/http_incident_remote_data_source.dart';
 import '../features/incident/application/sync_incidents_service.dart';
 import '../features/incident/infrastructure/sync/background_sync.dart';
+import '../features/weather/data/environmental_context_service.dart';
 
 class AppDependencies {
   AppDependencies({
@@ -64,7 +65,10 @@ class AppInitializer {
       location,
       HttpNotificationGateway(auth),
     );
-    final remote = HttpIncidentRemoteDataSource(auth);
+    final remote = HttpIncidentRemoteDataSource(
+      auth,
+      environment: OpenMeteoEnvironmentalContextProvider(),
+    );
     final repository = IncidentRepositoryImpl(local: local, remote: remote);
     final dependencies = AppDependencies(
       repository: repository,

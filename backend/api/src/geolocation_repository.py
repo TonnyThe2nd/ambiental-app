@@ -14,9 +14,15 @@ class NearbyUser:
 
 async def find_users_within_radius(
     latitude: float, longitude: float, category: str, severity: str,
-    reported_by: UUID | None = None,
+    reported_by: UUID | None = None, incident_id: UUID | None = None,
 ) -> list[NearbyUser]:
-    """Uses the partial GiST geography index; ST_DWithin is index-assisted."""
+    """Seleciona destinatários de um novo incidente.
+
+    O cooldown ignora notificações do próprio incidente: se o envio FCM falhar depois de a
+    notificação ser persistida, a reentrega do RabbitMQ precisa encontrar o mesmo usuário
+    de novo; antes, o cooldown o excluía e o push se perdia na retentativa.
+    """
+    # ST_DWithin usa os índices GiST de geography.
     point_sql = "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography"
     async with pool.connection() as connection:
         async with connection.cursor() as cursor:
@@ -43,6 +49,7 @@ async def find_users_within_radius(
                     SELECT 1 FROM notifications n WHERE n.user_id = u.id
                       AND n.created_at > NOW() - (u.alert_cooldown_minutes * INTERVAL '1 minute')
                       AND n.severity = %s
+                      AND n.incident_id IS DISTINCT FROM %s::uuid
                   )
                   AND (%s = 'critico' OR u.quiet_hours_start IS NULL OR u.quiet_hours_end IS NULL OR
                        CASE WHEN u.quiet_hours_start < u.quiet_hours_end
@@ -51,7 +58,7 @@ async def find_users_within_radius(
                               AND (NOW() AT TIME ZONE u.timezone)::time < u.quiet_hours_start END)
                 """,
                 (longitude, latitude, longitude, latitude, reported_by, longitude, latitude, longitude, latitude,
-                 category, severity, severity, severity),
+                 category, severity, severity, incident_id, severity),
             )
             rows = await cursor.fetchall()
     return [NearbyUser(row["id"], row["fcm_token"], row["distance_km"], row["reason"]) for row in rows]

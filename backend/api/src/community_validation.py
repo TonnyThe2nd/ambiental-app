@@ -13,7 +13,7 @@ async def validate_incident(incident_id: UUID, user_id: UUID, data: CommunityVal
     async with pool.connection() as connection:
         async with connection.transaction():
             incident = await connection.execute(
-                "SELECT reported_by, risk_score FROM incidents WHERE id = %s FOR UPDATE", (incident_id,)
+                "SELECT reported_by, risk_score, latitude, longitude, geohash FROM incidents WHERE id = %s FOR UPDATE", (incident_id,)
             )
             row = await incident.fetchone()
             if row is None:
@@ -62,7 +62,9 @@ async def validate_incident(incident_id: UUID, user_id: UUID, data: CommunityVal
             event_id = uuid4()
             payload = {"eventId": str(event_id), "eventType": EVENT_TYPE,
                        "data": {"id": str(incident_id), "confidenceScore": confidence,
-                                "priorityScore": priority, "workflowStatus": workflow}}
+                                "priorityScore": priority, "workflowStatus": workflow,
+                                "latitude": row["latitude"], "longitude": row["longitude"],
+                                "geohash": row["geohash"]}}
             await connection.execute(
                 "INSERT INTO outbox (id, aggregate_id, event_type, payload) VALUES (%s, %s, %s, %s::jsonb)",
                 (event_id, incident_id, EVENT_TYPE, json.dumps(payload)),

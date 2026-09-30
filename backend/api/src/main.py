@@ -10,7 +10,8 @@ from .identity.presentation.router import create_identity_router
 from .alerts.application.notification_use_cases import ListNotifications, MarkNotificationRead
 from .alerts.infrastructure.postgres_notification_repository import PostgresNotificationRepository
 from .alerts.presentation.router import create_alerts_router
-from .incidents.application.use_cases import CreateIncident, ListIncidents, ReviewIncident, ValidateIncident
+from .incidents.application.use_cases import (CreateIncident, IncidentPhotos, ListHeatmap, ListIncidents,
+                                              ReviewIncident, ValidateIncident)
 from .incidents.infrastructure.postgres_incident_repository import PostgresIncidentRepository
 from .incidents.presentation.router import create_incidents_router
 from .monitoring.application.health_service import GetSystemHealth
@@ -21,11 +22,23 @@ from .monitoring.presentation.router import create_monitoring_router
 from .operations.application.use_cases import OperationsUseCases
 from .operations.infrastructure.postgres_operations_repository import PostgresOperationsRepository
 from .operations.presentation.router import create_operations_router
+from .realtime.domain.hub import hub
+from .realtime.infrastructure.event_listener import RealtimeEventListener
+from .realtime.presentation.router import create_realtime_router
+from .shared.infrastructure.cache import cache
+
+realtime_listener = RealtimeEventListener(hub, cache)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    async with lifespan_pool(): yield
+    async with lifespan_pool():
+        realtime_listener.start()
+        try:
+            yield
+        finally:
+            await realtime_listener.stop()
+            await cache.close()
 
 
 def create_app() -> FastAPI:
@@ -46,7 +59,10 @@ def create_app() -> FastAPI:
     operations = PostgresOperationsRepository()
     application.include_router(create_identity_router(limiter))
     application.include_router(create_alerts_router(ListNotifications(notifications), MarkNotificationRead(notifications)))
-    application.include_router(create_incidents_router(CreateIncident(incidents), ListIncidents(incidents), ValidateIncident(incidents), ReviewIncident(incidents)))
+    application.include_router(create_incidents_router(
+        CreateIncident(incidents), ListIncidents(incidents, cache), ValidateIncident(incidents),
+        ReviewIncident(incidents), ListHeatmap(incidents, cache), IncidentPhotos(incidents)))
+    application.include_router(create_realtime_router(hub))
     application.include_router(create_monitoring_router(GetSystemHealth(PostgresHealthCheck(), RabbitMqHealthCheck()), SaveObservation(observations), GetObservationHistory(observations)))
     application.include_router(create_operations_router(OperationsUseCases(operations)))
 

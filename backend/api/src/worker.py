@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from .database import lifespan_pool, pool
 from .geolocation_repository import NearbyUser, find_users_within_radius
 from .messaging import DEAD_EXCHANGE, INCIDENT_QUEUE, RABBITMQ_URL, ROUTING_KEY, declare_topology
-from .models import IncidentInput
+from .models import IncidentOutput as IncidentInput  # leitura tolerante a eventos antigos
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("urbaneye.worker")
@@ -71,7 +71,7 @@ def _send_fcm_batch(tokens: list[str], incident: IncidentInput):
         tokens=tokens,
         notification=messaging.Notification(
             title="Nova ocorrência perto de você",
-            body=f"Foi registrado {category_label(incident.category)} em um raio de 10 km.",
+            body=f"Foi registrado {category_label(incident.category)} perto de você.",
         ),
         data={"incidentId": str(incident.id), "category": incident.category},
         android=messaging.AndroidConfig(priority="high"),
@@ -116,7 +116,7 @@ async def process_event(envelope: dict) -> IncidentInput:
     reporter = envelope["data"].get("reportedBy")
     users = await find_users_within_radius(
         incident.latitude, incident.longitude, incident.category, severity,
-        UUID(reporter) if reporter else None,
+        UUID(reporter) if reporter else None, incident.id,
     )
     await persist_notifications(incident, users)
     await dispatch_fcm(incident, users)

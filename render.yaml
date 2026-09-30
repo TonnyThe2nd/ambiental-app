@@ -8,6 +8,14 @@ databases:
     ipAllowList: []
 
 services:
+  # Cache distribuído (Redis/Key Value) para o mapa e o mapa de calor.
+  - type: keyvalue
+    name: urbaneye-cache
+    plan: free
+    region: ohio
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
   - type: pserv
     name: urbaneye-rabbitmq
     runtime: image
@@ -60,6 +68,27 @@ services:
         value: /etc/secrets/firebase-service-account.json
       - key: LOG_LEVEL
         value: INFO
+      # A API consulta o RabbitMQ no /health e assina os eventos para o WebSocket.
+      # Sem estas variáveis ela tentava localhost e o health check do Render falhava.
+      - key: RABBITMQ_HOST
+        fromService:
+          type: pserv
+          name: urbaneye-rabbitmq
+          property: host
+      - key: RABBITMQ_PORT
+        value: "5672"
+      - key: RABBITMQ_USER
+        value: urbaneye
+      - key: RABBITMQ_PASSWORD
+        fromService:
+          type: pserv
+          name: urbaneye-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_PASS
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: urbaneye-cache
+          property: connectionString
 
   - type: worker
     name: urbaneye-worker

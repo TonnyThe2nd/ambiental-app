@@ -32,6 +32,20 @@ RETRY_QUEUE = "incidents.create.retry"
 DEAD_QUEUE = "incidents.create.dead"
 ROUTING_KEY = "incident.created.v1"
 RETRY_ROUTING_KEY = "incident.created.retry.v1"
+# Eventos que PRECISAM de um consumidor durável: se nenhuma fila os aceitar, o broker
+# devolve a mensagem e a outbox tenta de novo. Os demais (atualizações para o mapa em
+# tempo real) só interessam a quem estiver conectado e não podem travar a outbox.
+DURABLE_EVENT_TYPES = frozenset({ROUTING_KEY})
+REALTIME_BINDING = "incident.#"
+
+
+def event_headers(payload: dict) -> dict:
+    """Metadados de roteamento geográfico (GeoHash) copiados para o cabeçalho AMQP."""
+    cell = (payload.get("data") or {}).get("geohash")
+    if not cell:
+        return {}
+    from .shared.domain.geohash import partition_of
+    return {"x-geohash": cell, "x-geo-partition": partition_of(cell)}
 
 
 async def check_rabbitmq_connection() -> None:
@@ -105,10 +119,11 @@ class EventPublisher:
             body=json.dumps(payload).encode(), content_type="application/json",
             delivery_mode=DeliveryMode.PERSISTENT, message_id=event_id,
             correlation_id=str(payload.get("data", {}).get("id", "")), type=event_type,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(timezone.utc), headers=event_headers(payload),
         )
         exchange = await self.channel.get_exchange(EVENT_EXCHANGE)
-        await exchange.publish(message, routing_key=event_type, mandatory=True)
+        await exchange.publish(message, routing_key=event_type,
+                               mandatory=event_type in DURABLE_EVENT_TYPES)
 
 
 publisher = EventPublisher()

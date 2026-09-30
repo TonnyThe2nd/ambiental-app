@@ -50,6 +50,9 @@ manifesto após deixar de usar HTTP local.
 - `POST /incidents`: valida e publica uma ocorrência; retorna `202 Accepted`.
 - `GET /incidents`: lista as ocorrências para o mapa.
 - `GET /health`: verifica PostgreSQL e RabbitMQ.
+- `GET /incidents/heatmap`: mapa de calor por quadrante GeoHash (cache Redis).
+- `PUT|GET /incidents/{id}/photo`: envio e leitura da foto do relato.
+- `WS /ws/incidents`: eventos de ocorrência em tempo real por quadrante GeoHash.
 
 O Hive continua sendo a fila local offline; o serviço de sincronização tenta
 enviar pendências quando há conexão.
