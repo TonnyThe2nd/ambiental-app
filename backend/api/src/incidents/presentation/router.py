@@ -62,6 +62,10 @@ def create_incidents_router(create: CreateIncidentUseCase, listing: ListIncident
         return Response(content=bytes(photo["content"]), media_type=photo["content_type"],
                         headers={"Cache-Control": "private, max-age=86400"})
 
+    @router.get("/{incident_id}/community-validation")
+    async def my_validation(incident_id:UUID,user:CurrentUser)->dict:
+        return {"vote": await validate.mine(incident_id,user.id)}
+
     @router.put("/{incident_id}/community-validation")
     async def validate_one(incident_id:UUID,data:CommunityValidationInput,user:CurrentUser)->dict:
         try: return await validate.execute(incident_id,user.id,data)

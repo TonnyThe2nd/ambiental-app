@@ -9,6 +9,7 @@ class ListIncidentsUseCase(Protocol):
     async def execute(self, filters: IncidentFilters) -> list[dict]: ...
 class ValidateIncidentUseCase(Protocol):
     async def execute(self, incident_id: UUID, user_id: UUID, data: object) -> dict: ...
+    async def mine(self, incident_id: UUID, user_id: UUID) -> str | None: ...
 class ReviewIncidentUseCase(Protocol):
     async def execute(self, incident_id: UUID, reviewer_id: UUID, decision: str, notes: str | None) -> None: ...
 
@@ -53,6 +54,10 @@ class ValidateIncident(ValidateIncidentUseCase):
     def __init__(self, repository: IncidentRepository) -> None: self._repository = repository
     async def execute(self, incident_id: UUID, user_id: UUID, data: object) -> dict:
         return await self._repository.validate(incident_id, user_id, data)
+
+    async def mine(self, incident_id: UUID, user_id: UUID) -> str | None:
+        """Voto atual do usuário (o app não pede de novo a confirmação a quem já votou)."""
+        return await self._repository.my_vote(incident_id, user_id)
 
 
 class ReviewIncident(ReviewIncidentUseCase):

@@ -11,6 +11,7 @@ class ProximityZone {
     required this.latitude,
     required this.longitude,
     required this.radiusMeters,
+    this.reportedById,
   });
 
   final String incidentId;
@@ -20,9 +21,13 @@ class ProximityZone {
   final double longitude;
   final int radiusMeters;
 
+  /// Autor do relato: ele não é convidado a confirmar a própria ocorrência.
+  final String? reportedById;
+
   factory ProximityZone.fromIncidentJson(Map<String, dynamic> json) {
     final category = json['category'] as String;
     final severity = json['severity'] as String? ?? 'moderado';
+    final reporter = json['reportedBy'];
     return ProximityZone(
       incidentId: json['id'] as String,
       category: category,
@@ -31,6 +36,7 @@ class ProximityZone {
       longitude: (json['longitude'] as num).toDouble(),
       radiusMeters: (json['impactRadiusM'] as num?)?.toInt() ??
           incidentImpactRadiusMeters(category, severity),
+      reportedById: reporter is Map ? reporter['id'] as String? : null,
     );
   }
 
@@ -41,6 +47,7 @@ class ProximityZone {
     latitude: (map['latitude'] as num).toDouble(),
     longitude: (map['longitude'] as num).toDouble(),
     radiusMeters: (map['radiusMeters'] as num).toInt(),
+    reportedById: map['reportedById'] as String?,
   );
 
   Map<String, Object> toMap() => {
@@ -50,6 +57,7 @@ class ProximityZone {
     'latitude': latitude,
     'longitude': longitude,
     'radiusMeters': radiusMeters,
+    'reportedById': ?reportedById,
   };
 }
 

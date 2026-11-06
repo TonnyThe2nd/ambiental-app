@@ -85,6 +85,23 @@ A avaliação só notifica na **transição de fora para dentro**, com margem de
 6 horas. Como o app notifica, ele envia `localGeofencing: true` e o servidor registra o
 histórico sem mandar push, evitando notificação duplicada.
 
+### Confirmação no local
+
+Ao entrar na área, o usuário é convidado a dizer se a ocorrência **ainda está ali** (voto
+`confirmar` ou `rejeitar` em `PUT /incidents/{id}/community-validation`, o mesmo do mapa):
+
+| Situação do app | Como pergunta |
+|---|---|
+| Aberto na tela | Folha "Isso ainda está aqui?" com "Sim, ainda está aqui", "Não está mais" e "Agora não" |
+| Minimizado ou fechado | Botões "Ainda está aqui" / "Não está mais" na própria notificação de entrada; o voto é enviado num isolate em segundo plano, sem abrir o app, e a notificação é trocada pelo resultado |
+| Toque na notificação | Abre o app direto na pergunta (também na abertura a frio) |
+
+Não pergunta ao autor do relato nem a quem já votou (`GET /incidents/{id}/community-validation`
+devolve o voto atual do usuário). "Agora não" silencia a pergunta até o fim da sessão. Se o
+envio pela notificação falhar (sem rede), ela vira "Confirmação pendente" e o toque reabre a
+pergunta no app. Código: `alerts/application/incident_confirmation.dart` e
+`alerts/presentation/incident_confirmation_prompt.dart`.
+
 Limites conhecidos: com o app fechado, o Android executa tarefas periódicas no mínimo a cada
 15 minutos e pode adiá-las em modo de economia de bateria; no iOS o alerta com o app
 encerrado pelo usuário depende do push do servidor.

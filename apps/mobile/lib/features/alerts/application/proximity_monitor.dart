@@ -59,6 +59,7 @@ class ProximityMonitor extends ChangeNotifier {
   DateTime? _lastHeartbeat;
   LocationAccess _access = LocationAccess.denied;
   List<ZoneEntry> _recentEntries = const [];
+  final _entries = StreamController<ZoneEntry>.broadcast();
 
   bool get enabled => _store.enabled;
   bool get tracking => _subscription != null;
@@ -66,6 +67,10 @@ class ProximityMonitor extends ChangeNotifier {
   Location? get lastPosition => _lastPosition;
   List<ProximityZone> get zones => _store.zones;
   List<ZoneEntry> get recentEntries => _recentEntries;
+
+  /// Cada entrada em área detectada neste isolate (usada para pedir a confirmação
+  /// da ocorrência na tela quando o app está aberto).
+  Stream<ZoneEntry> get entries => _entries.stream;
   List<List<double>>? get activeRoute => _store.activeRoute;
 
   /// Começa o rastreamento contínuo, se habilitado e com permissão.
@@ -201,6 +206,7 @@ class ProximityMonitor extends ChangeNotifier {
       }
       if (entries.isNotEmpty) {
         _recentEntries = entries;
+        entries.forEach(_entries.add);
       }
       notifyListeners();
       return entries;
@@ -306,6 +312,7 @@ class ProximityMonitor extends ChangeNotifier {
   @override
   void dispose() {
     unawaited(_subscription?.cancel());
+    unawaited(_entries.close());
     super.dispose();
   }
 }
