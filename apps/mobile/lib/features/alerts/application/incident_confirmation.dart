@@ -44,10 +44,9 @@ class IncidentConfirmationService {
     required this._gateway,
     Stream<ZoneEntry>? entries,
     List<ProximityZone> Function()? zones,
-    Future<void> Function(String incidentId)? dismissNotification,
+    this._dismissNotification,
     bool Function()? isForeground,
   }) : _zones = zones ?? (() => const []),
-       _dismissNotification = dismissNotification,
        _isForeground = isForeground ?? _appIsResumed {
     _entrySubscription = entries?.listen((entry) => unawaited(_onEntry(entry)));
   }
