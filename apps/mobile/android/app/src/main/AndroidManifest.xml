@@ -45,6 +45,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Botões "Ainda está aqui" / "Não está mais" da notificação de entrada em área. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/alerts/presentation/incident_confirmation_prompt.dart';
 import '../features/incident/presentation/pages/incident_form_page.dart';
 import '../features/auth/presentation/pages/account_page.dart';
 import '../features/auth/presentation/pages/auth_page.dart';
@@ -152,6 +153,13 @@ class _HomeState extends State<_Home> {
         notifications: widget.dependencies.notifications,
       ),
     ];
+    return IncidentConfirmationPrompter(
+      service: widget.dependencies.confirmation,
+      child: _scaffold(pages),
+    );
+  }
+
+  Widget _scaffold(List<Widget> pages) {
     return Scaffold(
       body: pages[index],
       bottomNavigationBar: NavigationBar(

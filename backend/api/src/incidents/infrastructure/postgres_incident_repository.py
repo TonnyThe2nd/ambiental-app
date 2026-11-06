@@ -21,6 +21,14 @@ class PostgresIncidentRepository:
     async def validate(self, incident_id: UUID, user_id: UUID, data: object) -> dict:
         return await validate_incident(incident_id, user_id, data)
 
+    async def my_vote(self, incident_id: UUID, user_id: UUID) -> str | None:
+        async with self._pool.connection() as connection:
+            result = await connection.execute(
+                "SELECT vote FROM incident_validations WHERE incident_id = %s AND user_id = %s",
+                (incident_id, user_id))
+            row = await result.fetchone()
+            return row["vote"] if row else None
+
     async def list(self, f: IncidentFilters) -> list[dict]:
         async with self._pool.connection() as connection:
             result = await connection.execute(

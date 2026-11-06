@@ -14,7 +14,9 @@ import '../features/auth/infrastructure/http_auth_gateway.dart';
 import '../features/auth/infrastructure/secure_auth_session_store.dart';
 import '../core/device/location_service.dart';
 import '../features/alerts/application/notification_service.dart';
+import '../features/alerts/application/incident_confirmation.dart';
 import '../features/alerts/application/proximity_monitor.dart';
+import '../features/alerts/infrastructure/http_incident_confirmation_gateway.dart';
 import '../features/alerts/infrastructure/hive_proximity_store.dart';
 import '../features/alerts/infrastructure/http_notification_gateway.dart';
 import '../features/incident/infrastructure/remote/http_incident_remote_data_source.dart';
@@ -33,6 +35,7 @@ class AppDependencies {
     required this.auth,
     required this.notifications,
     required this.proximity,
+    required this.confirmation,
     required this.mapLayers,
     required this.routePlanner,
   });
@@ -43,6 +46,7 @@ class AppDependencies {
   final AuthService auth;
   final NotificationService notifications;
   final ProximityMonitor proximity;
+  final IncidentConfirmationService confirmation;
   final MapLayersService mapLayers;
   final RoutePlanner routePlanner;
 }
@@ -77,7 +81,19 @@ class AppInitializer {
       tracker: GeolocatorLocationTracker(),
       gateway: notificationGateway,
       store: await HiveProximityStore.open(),
-      notifier: SystemNotificationService.showProximity,
+      // A notificação de entrada pergunta se a ocorrência ainda está no local
+      // (exceto ao autor do relato), com botões que votam sem abrir o app.
+      notifier: (entry) => SystemNotificationService.showProximity(
+        entry,
+        askConfirmation: entry.zone.reportedById != auth.currentUser?.id,
+      ),
+    );
+    final confirmation = IncidentConfirmationService(
+      auth: auth,
+      gateway: HttpIncidentConfirmationGateway(auth),
+      entries: proximity.entries,
+      zones: () => proximity.zones,
+      dismissNotification: SystemNotificationService.dismissProximity,
     );
     final notifications = NotificationService(
       auth,
@@ -98,6 +114,7 @@ class AppInitializer {
       auth: auth,
       notifications: notifications,
       proximity: proximity,
+      confirmation: confirmation,
       mapLayers: MapLayersService(auth),
       routePlanner: RoutePlanner(auth),
     );

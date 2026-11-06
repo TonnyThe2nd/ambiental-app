@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,6 +8,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../auth/application/auth_service.dart';
+import '../../auth/infrastructure/http_auth_gateway.dart';
+import '../../auth/infrastructure/secure_auth_session_store.dart';
+import '../infrastructure/http_incident_confirmation_gateway.dart';
+import 'incident_confirmation.dart';
 import '../../../core/device/location_service.dart';
 import '../../incident/presentation/models/incident_category_visual.dart';
 import '../domain/notification_gateway.dart';
@@ -23,6 +28,58 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await SystemNotificationService.show(message);
   }
 }
+
+/// Botão da notificação de entrada tocado com o app fechado ou minimizado: registra
+/// o voto num isolate próprio (sem abrir o app) e troca a notificação pelo resultado.
+@pragma('vm:entry-point')
+Future<void> onBackgroundNotificationResponse(NotificationResponse response) async {
+  final action = ProximityNotificationAction.parse(response);
+  final vote = action?.vote;
+  if (action == null || vote == null) return;
+  DartPluginRegistrant.ensureInitialized();
+  await SystemNotificationService.initialize();
+  final auth = AuthService(HttpAuthGateway(), SecureAuthSessionStore());
+  await auth.restoreSession();
+  if (!auth.isAuthenticated) return;
+  await SystemNotificationService.submitFromNotification(
+    HttpIncidentConfirmationGateway(auth),
+    action.incidentId,
+    vote,
+  );
+}
+
+/// Toque (ou botão) numa notificação de entrada em área de ocorrência.
+class ProximityNotificationAction {
+  const ProximityNotificationAction(this.incidentId, this.vote);
+
+  static const payloadPrefix = 'incident:';
+  static const category = 'incident_confirmation';
+
+  final String incidentId;
+
+  /// ``confirmar``/``rejeitar`` quando um botão foi tocado; ``null`` no toque simples.
+  final String? vote;
+
+  static ProximityNotificationAction? parse(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null || !payload.startsWith(payloadPrefix)) return null;
+    final id = payload.substring(payloadPrefix.length);
+    if (id.isEmpty) return null;
+    final action = response.actionId;
+    final vote = action == confirmVote || action == rejectVote ? action : null;
+    return ProximityNotificationAction(id, vote);
+  }
+}
+
+String severityLabel(String severity) => switch (severity) {
+  'critico' => 'crítica',
+  'leve' => 'leve',
+  _ => 'moderada',
+};
+
+String distanceLabel(double meters) => meters < 1000
+    ? '${meters.round()} m'
+    : '${(meters / 1000).toStringAsFixed(1)} km';
 
 class NotificationContent {
   const NotificationContent({required this.title, required this.body});
@@ -53,18 +110,41 @@ class SystemNotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static final _taps = StreamController<ProximityNotificationAction>.broadcast();
+
+  /// Toques em notificações de entrada com o app em execução (isolate principal).
+  static Stream<ProximityNotificationAction> get proximityTaps => _taps.stream;
+
+  static int proximityNotificationId(String incidentId) => incidentId.hashCode & 0x7fffffff;
 
   static Future<void> initialize() async {
     if (_initialized) return;
-    const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    final settings = InitializationSettings(
+      android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
         requestSoundPermission: false,
+        notificationCategories: [
+          DarwinNotificationCategory(
+            ProximityNotificationAction.category,
+            actions: [
+              DarwinNotificationAction.plain(confirmVote, 'Ainda está aqui'),
+              DarwinNotificationAction.plain(
+                rejectVote,
+                'Não está mais',
+                options: {DarwinNotificationActionOption.destructive},
+              ),
+            ],
+          ),
+        ],
       ),
     );
-    await _plugin.initialize(settings);
+    await _plugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: _onResponse,
+      onDidReceiveBackgroundNotificationResponse: onBackgroundNotificationResponse,
+    );
     await _plugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -77,6 +157,66 @@ class SystemNotificationService {
     _initialized = true;
   }
 
+  static void _onResponse(NotificationResponse response) {
+    final action = ProximityNotificationAction.parse(response);
+    if (action != null) _taps.add(action);
+  }
+
+  /// Notificação de entrada que abriu o app a partir do estado fechado.
+  static Future<ProximityNotificationAction?> launchAction() async {
+    await initialize();
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    final response = details?.notificationResponse;
+    if (details?.didNotificationLaunchApp != true || response == null) return null;
+    return ProximityNotificationAction.parse(response);
+  }
+
+  static Future<void> dismissProximity(String incidentId) async {
+    await initialize();
+    await _plugin.cancel(proximityNotificationId(incidentId));
+  }
+
+  /// Envia o voto escolhido num botão da notificação e mostra o resultado.
+  static Future<void> submitFromNotification(
+    IncidentConfirmationGateway gateway,
+    String incidentId,
+    String vote,
+  ) async {
+    String message;
+    var retry = false;
+    try {
+      final outcome = await gateway.submit(incidentId, vote);
+      message = switch (outcome) {
+        ConfirmationOutcome.recorded => vote == confirmVote
+            ? 'Obrigado! Você confirmou que a ocorrência continua no local.'
+            : 'Obrigado! Você informou que a ocorrência não está mais no local.',
+        ConfirmationOutcome.notAllowed => 'O autor do relato não pode confirmá-lo.',
+        ConfirmationOutcome.notFound => 'Esta ocorrência não está mais ativa.',
+      };
+    } catch (error) {
+      debugPrint('Confirmação pela notificação falhou: $error');
+      message = 'Não foi possível enviar agora. Toque para responder no app.';
+      retry = true;
+    }
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
+        importance: Importance.low,
+        priority: Priority.low,
+      ),
+      iOS: DarwinNotificationDetails(presentAlert: true, presentSound: false),
+    );
+    await _plugin.show(
+      proximityNotificationId(incidentId),
+      retry ? 'Confirmação pendente' : 'Confirmação registrada',
+      message,
+      details,
+      payload: retry ? '${ProximityNotificationAction.payloadPrefix}$incidentId' : null,
+    );
+  }
+
   static Future<void> requestPermission() async {
     await initialize();
     await _plugin
@@ -87,18 +227,18 @@ class SystemNotificationService {
 
   /// Notificação do sistema ao entrar numa área de ocorrência (app aberto, em
   /// segundo plano ou fechado — chamada também pela tarefa do WorkManager).
-  static Future<void> showProximity(ZoneEntry entry) async {
+  ///
+  /// Com [askConfirmation], a notificação pergunta se a ocorrência ainda está no
+  /// local e traz os botões de resposta (o voto é enviado sem abrir o app).
+  static Future<void> showProximity(ZoneEntry entry, {bool askConfirmation = false}) async {
     await initialize();
     final zone = entry.zone;
     final label = incidentCategoryVisual(zone.category).label;
-    final severity = switch (zone.severity) {
-      'critico' => 'crítica',
-      'leve' => 'leve',
-      _ => 'moderada',
-    };
-    final distance = entry.distanceMeters < 1000
-        ? '${entry.distanceMeters.round()} m'
-        : '${(entry.distanceMeters / 1000).toStringAsFixed(1)} km';
+    final severity = severityLabel(zone.severity);
+    final distance = distanceLabel(entry.distanceMeters);
+    final question = askConfirmation
+        ? ' Ela ainda está aí? Sua resposta ajuda a comunidade a manter o mapa correto.'
+        : '';
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         channelId,
@@ -109,22 +249,31 @@ class SystemNotificationService {
         category: AndroidNotificationCategory.navigation,
         styleInformation: BigTextStyleInformation(
           'A ocorrência está a $distance de você (área de ${zone.radiusMeters} m). '
-          'Redobre a atenção ou procure outro caminho.',
+          'Redobre a atenção ou procure outro caminho.$question',
         ),
+        actions: askConfirmation
+            ? const [
+                AndroidNotificationAction(confirmVote, 'Ainda está aqui'),
+                AndroidNotificationAction(rejectVote, 'Não está mais'),
+              ]
+            : null,
       ),
-      iOS: const DarwinNotificationDetails(
+      iOS: DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
         interruptionLevel: InterruptionLevel.timeSensitive,
+        categoryIdentifier: askConfirmation ? ProximityNotificationAction.category : null,
       ),
     );
     await _plugin.show(
-      zone.incidentId.hashCode & 0x7fffffff,
+      proximityNotificationId(zone.incidentId),
       'Você entrou em uma área de risco',
-      '$label ($severity) a $distance',
+      askConfirmation
+          ? '$label ($severity) a $distance. Ainda está aí?'
+          : '$label ($severity) a $distance',
       details,
-      payload: 'incident:${zone.incidentId}',
+      payload: '${ProximityNotificationAction.payloadPrefix}${zone.incidentId}',
     );
   }
 
